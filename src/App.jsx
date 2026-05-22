@@ -419,12 +419,12 @@ function AuthModal({ searchTerm, resultCount, onClose, onContinue }) {
           <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginBottom: 8, lineHeight: 1.3, letterSpacing: '-0.3px' }}>
             {resultCount > 0
               ? `${resultCount} review${resultCount !== 1 ? 's' : ''} found for "${searchTerm}"`
-              : `Be the first to review "${searchTerm}"`}
+              : `See and leave reviews for "${searchTerm}"`}
           </h2>
           <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
             {resultCount > 0
               ? 'Make an account and review your manager to see other reviews.'
-              : 'Create a free account and review your manager — your review helps others find great managers and avoid bad ones.'}
+              : 'Create a free account, leave a review for your manager, and unlock access to all reviews on the platform.'}
           </p>
         </div>
 
