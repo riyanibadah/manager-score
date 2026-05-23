@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../src/lib/prisma";
+import { getRecentReviews } from "../../../src/lib/public-data";
 import { hashValue, normalizeReview, slugify } from "../../../src/lib/reviews";
+import { managerPath } from "../../../src/lib/seo";
 
 export async function GET() {
   if (!process.env.DATABASE_URL) {
@@ -9,40 +11,7 @@ export async function GET() {
   }
 
   try {
-    const reviews = await prisma.review.findMany({
-      where: { status: "APPROVED" },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-      include: {
-        manager: { include: { company: true } },
-        tags: true,
-      },
-    });
-
-    return NextResponse.json({
-      reviews: reviews.map((review) => ({
-        id: review.id,
-        managerName: review.manager.name,
-        managerTitle: review.manager.title,
-        company: review.manager.company.name,
-        department: review.manager.department,
-        reviewerRole: review.reviewerRole,
-        workedWith: review.workedWith,
-        employmentType: review.employmentType,
-        employeeStatus: review.employeeStatus,
-        overall: review.overall,
-        communication: review.communication,
-        worklife: review.worklife,
-        recognition: review.recognition,
-        wouldAgain: review.wouldAgain,
-        reviewText: review.reviewText,
-        traits: review.tags.map((tag) => ({
-          tag: tag.tag,
-          sentiment: tag.sentiment.toLowerCase(),
-        })),
-        date: review.createdAt.toISOString(),
-      })),
-    });
+    return NextResponse.json({ reviews: await getRecentReviews(20) });
   } catch {
     return NextResponse.json({ reviews: [] });
   }
@@ -120,6 +89,7 @@ export async function POST(request: Request) {
       {
         id: created.id,
         status: created.status,
+        profilePath: managerPath(company.slug, manager.slug),
         message: "Review submitted anonymously.",
       },
       { status: 201 },

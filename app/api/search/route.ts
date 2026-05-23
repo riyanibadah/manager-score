@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../src/lib/prisma";
+import { managerPath } from "../../../src/lib/seo";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -48,6 +49,7 @@ export async function GET(request: Request) {
           title: manager.title,
           department: manager.department,
           company: manager.company.name,
+          profilePath: managerPath(manager.company.slug, manager.slug),
           reviewCount,
           averageScore,
         };

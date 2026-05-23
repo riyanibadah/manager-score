@@ -59,7 +59,7 @@ model Review {
   workedWith        String?
   employmentType    String?
   employeeStatus    String?
-  overall           Int
+  overall           Float
   communication     Int
   worklife          Int
   recognition       Int

@@ -138,6 +138,16 @@ function calculatedOverall(review) {
   const ratings = [review.communication, review.recognition, review.worklife].map(Number).filter(Boolean);
   return ratings.length ? avg(ratings) : Number(review.overall) || 0;
 }
+function clientSlugify(value) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+function profilePathForReview(review) {
+  return review.profilePath || `/managers/${review.companySlug || clientSlugify(review.company)}/${review.managerSlug || clientSlugify(review.managerName)}`;
+}
 function managerKey(r) { return `${r.managerName.trim()}|||${r.company.trim()}`; }
 
 function loadData() {
@@ -295,9 +305,9 @@ function ManagerCard({ reviews, onClick }) {
   );
 }
 
-function ReviewRow({ review, onClick }) {
-  return (
-    <button className="home-review-row" onClick={onClick}>
+function ReviewRow({ review, onClick, href }) {
+  const content = (
+    <>
       <div className="review-person">
         <Avatar name={review.managerName} size={74} />
         <div className="review-person-copy">
@@ -323,6 +333,20 @@ function ReviewRow({ review, onClick }) {
         </div>
       </div>
       <span className="row-chevron"><Icon name="chevron" size={27} /></span>
+    </>
+  );
+
+  if (href) {
+    return (
+      <a className="home-review-row" href={href}>
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <button className="home-review-row" onClick={onClick}>
+      {content}
     </button>
   );
 }
@@ -767,8 +791,9 @@ function ProfileNav({ onLogoClick, onBack, onAddReview }) {
 
 const CONTENT = { maxWidth: 1160, margin: '0 auto', padding: '0 1.25rem' };
 
-export default function App() {
-  const [reviews, setReviews] = useState([]);
+export default function App(props) {
+  const { initialReviews = [] } = props || {};
+  const [reviews, setReviews] = useState(initialReviews);
   const [view, setView] = useState('home');
   const [activeKey, setActiveKey] = useState(null);
   const [prefill, setPrefill] = useState(null);
@@ -971,6 +996,7 @@ export default function App() {
               <ReviewRow
                 key={review.id}
                 review={review}
+                href={profilePathForReview(review)}
                 onClick={() => {
                   setActiveKey(managerKey(review));
                   setView('profile');
