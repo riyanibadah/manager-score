@@ -1,52 +1,39 @@
-# Rate My Manager
+# Manager Score
 
-Honest manager reviews from real employees.
+Anonymous manager reviews with a low-friction submission flow.
 
-## Deploy to Netlify
+## Stack
 
-### Option A — Drag & drop (easiest)
+- Next.js + TypeScript
+- React
+- PostgreSQL + Prisma
+- Vercel-ready API routes
 
-1. Install dependencies and build:
-   ```
-   npm install
-   npm run build
-   ```
-2. Go to [netlify.com](https://netlify.com) → Add new site → Deploy manually
-3. Drag the `dist/` folder into the upload area
-4. Done — your site is live
+## Local Development
 
-> **Note:** With drag & drop, the AI tag generation won't work (it needs a server). Everything else will. To enable AI tags, use Option B.
-
----
-
-### Option B — Git deploy (enables AI features)
-
-1. Push this folder to a GitHub/GitLab repo
-2. In Netlify: Add new site → Import from Git → select your repo
-3. Build settings are auto-detected from `netlify.toml`
-4. Go to **Site settings → Environment variables** and add:
-   ```
-   ANTHROPIC_API_KEY = sk-ant-...
-   ```
-5. Redeploy — AI tag generation will now work on the review form
-
-Get an Anthropic API key at [console.anthropic.com](https://console.anthropic.com)
-
----
-
-## Local development
-
-```
+```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173
+Open http://127.0.0.1:3000.
 
-> AI tags won't work locally unless you add `ANTHROPIC_API_KEY` to a `.env` file and set up the Netlify CLI (`netlify dev`).
+## Database Setup
 
----
+1. Create a Postgres database with Neon or Supabase.
+2. Copy `.env.example` to `.env.local`.
+3. Set `DATABASE_URL` and `REVIEW_HASH_SALT`.
+4. Run:
 
-## Data storage
+```bash
+npm run prisma:migrate
+```
 
-Reviews are stored in the visitor's browser (`localStorage`). Each visitor sees only their own submitted reviews. To add a shared database (so all visitors see all reviews), you'd need to connect a backend — Supabase or Airtable work well for this.
+Reviews are submitted anonymously and published immediately as `APPROVED` for the MVP. The status field is still in the schema so moderation can be added later.
+
+## API Routes
+
+- `POST /api/reviews` submits an anonymous review.
+- `GET /api/reviews` returns approved recent reviews.
+- `GET /api/search?q=google` searches approved manager profiles.
+- `POST /api/generate-tags` suggests simple tags for review text.
