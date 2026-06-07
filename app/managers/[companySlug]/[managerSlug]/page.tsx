@@ -18,12 +18,12 @@ export async function generateMetadata({ params }: ManagerPageProps): Promise<Me
 
   if (!profile) {
     return {
-      title: "Manager Reviews | Manager Score",
+      title: "Manager Reviews | ManagerScore",
       robots: { index: false, follow: false },
     };
   }
 
-  const title = `${profile.name} at ${profile.company} Reviews | Manager Score`;
+  const title = `${profile.name} at ${profile.company} Reviews | ManagerScore`;
   const description = `Read anonymous employee reviews of ${profile.name}, ${profile.title} at ${profile.company}. See communication, support, and work-life ratings.`;
   const url = `${siteUrl()}${managerPath(companySlug, managerSlug)}`;
 

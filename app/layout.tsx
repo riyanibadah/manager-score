@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "../src/App.css";
 
 export const metadata: Metadata = {
-  title: "Manager Score",
+  title: "ManagerScore",
   description: "Anonymous manager reviews from real employees.",
 };
 
