@@ -150,6 +150,11 @@ function profilePathForReview(review) {
   return review.profilePath || `/managers/${review.companySlug || clientSlugify(review.company)}/${review.managerSlug || clientSlugify(review.managerName)}`;
 }
 function managerKey(r) { return `${r.managerName.trim()}|||${r.company.trim()}`; }
+function reviewFingerprint(r) {
+  return [r.managerName, r.company, r.reviewText]
+    .map(s => (s || '').trim().toLowerCase().replace(/\s+/g, ' '))
+    .join('|||');
+}
 
 function loadData() {
   try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : { reviews: [] }; }
@@ -942,8 +947,11 @@ export default function App(props) {
       .then(data => {
         if (data?.reviews?.length) {
           setReviews(prev => {
-            const seen = new Set(prev.map(r => r.id));
-            return [...prev, ...data.reviews.filter(r => !seen.has(r.id))];
+            const serverFingerprints = new Set(data.reviews.map(reviewFingerprint));
+            const localOnly = prev.filter(r => !serverFingerprints.has(reviewFingerprint(r)));
+            const merged = [...localOnly, ...data.reviews];
+            saveData({ reviews: localOnly });
+            return merged;
           });
         }
       })
