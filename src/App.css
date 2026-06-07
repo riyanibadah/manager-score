@@ -333,13 +333,20 @@ button, input, textarea, select { font: inherit; }
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
   overflow: hidden;
   background: #e2e8f0;
+  /* iOS Safari fails to clip a `filter`-ed child to a rounded `overflow:hidden` parent;
+     masking the child directly forces it onto a properly clipped layer. */
+  -webkit-mask-image: -webkit-radial-gradient(circle, #fff 100%, #000 100%);
+  mask-image: radial-gradient(circle, #fff 100%, #000 100%);
 }
 .mini-avatars span i {
   position: absolute;
   inset: -6px;
+  border-radius: 50%;
   background-size: cover;
   background-position: center;
   filter: blur(4px) saturate(1.05);
+  -webkit-mask-image: -webkit-radial-gradient(circle, #fff 100%, #000 100%);
+  mask-image: radial-gradient(circle, #fff 100%, #000 100%);
 }
 
 .hero-proof {
@@ -1107,22 +1114,28 @@ button, input, textarea, select { font: inherit; }
   }
   .hero-search-wrap {
     min-height: 0;
-    display: grid;
-    grid-template-columns: 28px 1fr;
-    padding: 16px;
-    row-gap: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 6px 20px;
+  }
+  .hero-search-wrap > svg {
+    display: none;
   }
   .hero-search-divider {
     display: none;
   }
   .hero-search-input {
-    grid-column: 2 / -1;
+    padding: 15px 0;
+    border-bottom: 1px solid #eef1f6;
   }
-  .hero-search-wrap > svg {
-    grid-row: 1;
+  .hero-search-input:last-of-type {
+    border-bottom: 0;
   }
   .hero-search-btn {
-    grid-column: 1 / -1;
+    width: 100%;
+    margin: 14px 0 6px;
     min-height: 48px;
   }
 
