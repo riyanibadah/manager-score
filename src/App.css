@@ -1197,3 +1197,122 @@ button, input, textarea, select { font: inherit; }
     display: grid;
   }
 }
+
+.legal-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 72% 6%, rgba(91, 45, 245, 0.08), transparent 24rem),
+    #f8fafc;
+  color: var(--ink);
+  padding: 0 0 64px;
+}
+.legal-topbar,
+.legal-content,
+.legal-footer {
+  width: min(100% - 40px, 760px);
+  margin: 0 auto;
+}
+.legal-topbar {
+  min-height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.legal-topbar .brand {
+  text-decoration: none;
+}
+.legal-content {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 44px;
+  margin-top: 8px;
+  box-shadow: 0 8px 30px rgba(18, 23, 40, 0.04);
+}
+.legal-content h1 {
+  margin: 0 0 6px;
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+.legal-meta {
+  margin: 0 0 32px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.legal-content h2 {
+  margin: 36px 0 12px;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+.legal-content h3 {
+  margin: 24px 0 8px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #1f2937;
+}
+.legal-content p,
+.legal-content li {
+  font-size: 15px;
+  line-height: 1.75;
+  color: #334155;
+}
+.legal-content p {
+  margin: 0 0 16px;
+}
+.legal-content ul {
+  margin: 0 0 16px;
+  padding-left: 22px;
+  display: grid;
+  gap: 8px;
+}
+.legal-content a {
+  color: var(--purple);
+  font-weight: 700;
+  text-decoration: none;
+}
+.legal-content a:hover {
+  text-decoration: underline;
+}
+.legal-content strong {
+  color: var(--ink);
+}
+.legal-footer {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 13px;
+  color: #64748b;
+}
+.legal-footer nav {
+  display: flex;
+  gap: 18px;
+}
+.legal-footer a {
+  color: #64748b;
+  font-weight: 700;
+  text-decoration: none;
+}
+.legal-footer a:hover {
+  color: var(--ink);
+}
+@media (max-width: 620px) {
+  .legal-content {
+    padding: 28px 22px;
+  }
+  .legal-content h1 {
+    font-size: 26px;
+  }
+  .legal-footer {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+}

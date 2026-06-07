@@ -1232,8 +1232,8 @@ export default function App(props) {
         <nav>
           <a href="#about">About</a>
           <a href="#reviews">Contact</a>
-          <a href="#about">Privacy</a>
-          <a href="#about">Terms</a>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
         </nav>
         <div className="social-links"><span>t</span><span>in</span><span>◎</span></div>
       </footer>
