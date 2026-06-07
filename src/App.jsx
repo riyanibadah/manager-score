@@ -6,6 +6,7 @@ const NAVY = '#080b1a';
 const PURPLE = '#5b2df5';
 const GOLD = '#ff9f0a';
 const KEY = 'rmm_data_v1';
+const UNLOCK_KEY = 'rmm_unlocked_v1';
 
 const SAMPLE_REVIEWS = [
   {
@@ -180,6 +181,32 @@ function GoogleIcon() {
   );
 }
 
+function AppleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="#1d1d1f" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+      <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.41-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zm3.61-3.25c.84-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.46 2.336-1.275 3.715 1.336.104 2.715-.688 3.562-1.703z" />
+    </svg>
+  );
+}
+
+function AmazonIcon() {
+  return (
+    <svg width="35" height="35" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+      <text x="12" y="15.5" textAnchor="middle" fontSize="14" fontWeight="800" fill="#131A22" fontFamily="Arial, Helvetica, sans-serif">a</text>
+      <path d="M6 17.6c2.8 1.7 9.2 1.7 12 0" stroke="#FF9900" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+      <path d="M16.7 16.7l1.5.5-.5 1.5" stroke="#FF9900" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function BlurredAvatar({ photo }) {
+  return (
+    <span className="blurred-avatar">
+      <i style={{ backgroundImage: `url(${photo})` }} />
+    </span>
+  );
+}
+
 function CompanyMark({ company }) {
   const name = company.toLowerCase();
   if (name.includes('google')) return <GoogleIcon />;
@@ -190,8 +217,8 @@ function CompanyMark({ company }) {
       </span>
     );
   }
-  if (name.includes('apple')) return <span className="company-mark text-mark">●</span>;
-  if (name.includes('amazon')) return <span className="company-mark amazon-mark">a</span>;
+  if (name.includes('apple')) return <AppleIcon />;
+  if (name.includes('amazon')) return <AmazonIcon />;
   return <span className="company-mark fallback-mark">{company[0]?.toUpperCase()}</span>;
 }
 
@@ -717,7 +744,7 @@ function SearchModal({ searchTerm, resultCount, onClose, onWriteReview, onViewMa
         <button className="modal-close" onClick={onClose}>×</button>
 
         <div style={{ fontWeight: 800, fontSize: 17, color: NAVY, marginBottom: '1.75rem' }}>
-          Manager <span style={{ color: PURPLE }}>Score</span>
+          Manager<span style={{ color: PURPLE }}>Score</span>
         </div>
 
         <div style={{ marginBottom: '1.75rem' }}>
@@ -731,7 +758,7 @@ function SearchModal({ searchTerm, resultCount, onClose, onWriteReview, onViewMa
           </h2>
           <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
             {resultCount > 0
-              ? 'You can open an existing profile or add a fresh anonymous review. No account required.'
+              ? 'You can open an existing profile or add a fresh anonymous review.'
               : 'Be the first to leave a useful anonymous review. Keep it honest, specific, and work-focused.'}
           </p>
         </div>
@@ -754,12 +781,114 @@ function SearchModal({ searchTerm, resultCount, onClose, onWriteReview, onViewMa
   );
 }
 
+function SearchLoadingModal({ searchTerm }) {
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-card" style={{ textAlign: 'center', paddingTop: '2.5rem', paddingBottom: '2.5rem' }}>
+        <div className="search-spinner" />
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '1.5rem 0 6px', letterSpacing: '-0.3px' }}>
+          Searching for "{searchTerm}"…
+        </h2>
+        <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>Looking through anonymous manager reviews.</p>
+      </div>
+    </div>
+  );
+}
+
+function AuthGateModal({ searchTerm, onClose, onContinue }) {
+  const [email, setEmail] = useState('');
+  return (
+    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-card">
+        <button className="modal-close" onClick={onClose}>×</button>
+
+        <div style={{ fontWeight: 800, fontSize: 17, color: NAVY, marginBottom: '1.75rem' }}>
+          Manager<span style={{ color: PURPLE }}>Score</span>
+        </div>
+
+        <div style={{ marginBottom: '1.75rem' }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: '#f4f0ff', color: PURPLE, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+            <Icon name="lock" size={24} />
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginBottom: 8, lineHeight: 1.3, letterSpacing: '-0.3px' }}>
+            Sign in to see results for "{searchTerm}"
+          </h2>
+          <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
+            Quick and free — continue with Google or your email. Your identity is only used to keep reviews trustworthy; everything you post stays completely anonymous.
+          </p>
+        </div>
+
+        <button className="btn-google" onClick={onContinue}>
+          <GoogleIcon />
+          Continue with Google
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '14px 0' }}>
+          <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+          <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500 }}>or</span>
+          <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+        </div>
+
+        <input
+          className="field-input"
+          type="email"
+          placeholder="Email address"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && email.trim() && onContinue()}
+          style={{ marginBottom: 10 }}
+        />
+        <button className="btn-primary" style={{ width: '100%', padding: '13px', fontSize: 14, borderRadius: 8 }} disabled={!email.trim()} onClick={onContinue}>
+          Continue with email →
+        </button>
+
+        <div style={{ textAlign: 'center', marginTop: 10, fontSize: 11, color: '#94a3b8', lineHeight: 1.5 }}>
+          Your reviews stay 100% anonymous · No spam
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewGateModal({ searchTerm, onClose, onWriteReview }) {
+  return (
+    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-card">
+        <button className="modal-close" onClick={onClose}>×</button>
+
+        <div style={{ fontWeight: 800, fontSize: 17, color: NAVY, marginBottom: '1.75rem' }}>
+          Manager<span style={{ color: PURPLE }}>Score</span>
+        </div>
+
+        <div style={{ marginBottom: '1.75rem' }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: '#fef3c7', color: GOLD, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+            <Icon name="edit" size={24} />
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginBottom: 8, lineHeight: 1.3, letterSpacing: '-0.3px' }}>
+            One last step to unlock "{searchTerm}"
+          </h2>
+          <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
+            Share one anonymous review of your own manager and we'll unlock every manager profile and review on ManagerScore — including this one.
+          </p>
+        </div>
+
+        <button className="btn-primary" style={{ width: '100%', padding: '13px', fontSize: 14, borderRadius: 8 }} onClick={onWriteReview}>
+          Write anonymous review →
+        </button>
+        <div style={{ textAlign: 'center', marginTop: 10, fontSize: 11, color: '#94a3b8', lineHeight: 1.5 }}>
+          Anonymous · Takes 3 minutes · Unlocks instantly
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Nav({ onLogoClick, onGetStarted }) {
   return (
     <nav className="rmm-nav">
       <div className="nav-inner">
         <div onClick={onLogoClick} className="brand">
-          Manager <span>Score</span><i />
+          Manager<span>Score</span><i />
         </div>
         <div className="nav-links">
           <a href="#reviews">Managers</a>
@@ -779,7 +908,7 @@ function ProfileNav({ onLogoClick, onBack, onAddReview }) {
   return (
     <nav className="rmm-nav">
       <div className="nav-inner">
-        <div onClick={onLogoClick} className="brand">Manager <span>Score</span><i /></div>
+        <div onClick={onLogoClick} className="brand">Manager<span>Score</span><i /></div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button className="btn-outline-dark" style={{ padding: '8px 14px', fontSize: 13 }} onClick={onBack}>← Back</button>
           <button className="btn-primary" style={{ padding: '9px 16px', fontSize: 13 }} onClick={onAddReview}>+ Add review</button>
@@ -797,11 +926,16 @@ export default function App(props) {
   const [view, setView] = useState('home');
   const [activeKey, setActiveKey] = useState(null);
   const [prefill, setPrefill] = useState(null);
-  const [search, setSearch] = useState('');
+  const [searchName, setSearchName] = useState('');
+  const [searchCompany, setSearchCompany] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [searchStage, setSearchStage] = useState(null); // null | 'loading' | 'auth' | 'gate'
+  const [unlocked, setUnlocked] = useState(false);
+  const [pendingUnlock, setPendingUnlock] = useState(false);
   const allReviews = [...reviews, ...SAMPLE_REVIEWS];
 
   useEffect(() => {
+    setUnlocked(localStorage.getItem(UNLOCK_KEY) === 'true');
     setReviews(loadData().reviews || []);
     fetch('/api/reviews')
       .then(res => res.ok ? res.json() : null)
@@ -825,6 +959,16 @@ export default function App(props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(review),
     }).catch(() => {});
+
+    if (pendingUnlock) {
+      localStorage.setItem(UNLOCK_KEY, 'true');
+      setUnlocked(true);
+      setPendingUnlock(false);
+      setView('home');
+      setShowModal(true);
+      return;
+    }
+
     setActiveKey(managerKey(review));
     setView('profile');
   }
@@ -836,21 +980,38 @@ export default function App(props) {
     managerMap[k].push(r);
   }
 
-  const q = search.toLowerCase().trim();
-  const matchedManagers = q
+  const qName = searchName.toLowerCase().trim();
+  const qCompany = searchCompany.toLowerCase().trim();
+  const canSearch = Boolean(qName && qCompany);
+  const matchedManagers = canSearch
     ? Object.entries(managerMap).filter(([, rs]) => {
         const r0 = rs[0];
-        return r0.managerName.toLowerCase().includes(q) || r0.company.toLowerCase().includes(q) || (r0.department || '').toLowerCase().includes(q);
+        return r0.managerName.toLowerCase().includes(qName) && r0.company.toLowerCase().includes(qCompany);
       })
     : [];
+  const searchTerm = canSearch ? `${searchName.trim()} at ${searchCompany.trim()}` : '';
 
   function handleSearch() {
-    if (search.trim()) setShowModal(true);
+    if (!canSearch) return;
+    if (unlocked) { setShowModal(true); return; }
+    setSearchStage('loading');
+    setTimeout(() => setSearchStage('auth'), 1300);
+  }
+
+  function handleAuthContinue() {
+    setSearchStage('gate');
+  }
+
+  function handleWriteReviewToUnlock() {
+    setSearchStage(null);
+    setPendingUnlock(true);
+    setPrefill(null);
+    setView('submit');
   }
 
   function handleWriteReviewFromSearch() {
     setShowModal(false);
-    setPrefill(search.trim() ? { managerName: search.trim() } : null);
+    setPrefill(canSearch ? { managerName: searchName.trim(), company: searchCompany.trim() } : null);
     setView('submit');
   }
 
@@ -868,7 +1029,7 @@ export default function App(props) {
         <nav className="rmm-nav">
           <div style={{ maxWidth: 760, margin: '0 auto', padding: '0 1.5rem', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div onClick={() => setView(activeKey ? 'profile' : 'home')} style={{ cursor: 'pointer', userSelect: 'none' }}>
-              <span style={{ fontSize: 18, fontWeight: 800, color: NAVY }}>Manager <span style={{ color: PURPLE }}>Score</span></span>
+              <span style={{ fontSize: 18, fontWeight: 800, color: NAVY }}>Manager<span style={{ color: PURPLE }}>Score</span></span>
             </div>
             <button className="btn-outline-dark" style={{ padding: '8px 14px', fontSize: 13 }} onClick={() => setView(activeKey ? 'profile' : 'home')}>← Cancel</button>
           </div>
@@ -884,7 +1045,7 @@ export default function App(props) {
     return (
       <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
         <ProfileNav
-          onLogoClick={() => { setView('home'); setSearch(''); }}
+          onLogoClick={() => { setView('home'); setSearchName(''); setSearchCompany(''); }}
           onBack={() => setView('home')}
           onAddReview={() => {
             const r0 = managerMap[activeKey][0];
@@ -915,9 +1076,27 @@ export default function App(props) {
     <div className="home-shell">
       <Nav onLogoClick={() => {}} onGetStarted={() => { setPrefill(null); setView('submit'); }} />
 
+      {searchStage === 'loading' && <SearchLoadingModal searchTerm={searchTerm} />}
+
+      {searchStage === 'auth' && (
+        <AuthGateModal
+          searchTerm={searchTerm}
+          onClose={() => setSearchStage(null)}
+          onContinue={handleAuthContinue}
+        />
+      )}
+
+      {searchStage === 'gate' && (
+        <ReviewGateModal
+          searchTerm={searchTerm}
+          onClose={() => setSearchStage(null)}
+          onWriteReview={handleWriteReviewToUnlock}
+        />
+      )}
+
       {showModal && (
         <SearchModal
-          searchTerm={search.trim()}
+          searchTerm={searchTerm}
           resultCount={matchedManagers.length}
           onClose={() => setShowModal(false)}
           onWriteReview={handleWriteReviewFromSearch}
@@ -940,27 +1119,35 @@ export default function App(props) {
                 <Icon name="search" size={28} />
                 <input
                   className="hero-search-input"
-                  placeholder="Search by manager name, company, or team..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Manager's name..."
+                  value={searchName}
+                  onChange={e => setSearchName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearch()}
                 />
-                <button className="hero-search-btn" onClick={handleSearch}>Search</button>
+                <span className="hero-search-divider" />
+                <input
+                  className="hero-search-input"
+                  placeholder="Company..."
+                  value={searchCompany}
+                  onChange={e => setSearchCompany(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                />
+                <button className="hero-search-btn" disabled={!canSearch} onClick={handleSearch}>Search</button>
               </div>
 
               <div className="trending-searches">
-                <span>Trending searches:</span>
+                <span>Trending companies:</span>
                 {['Amazon', 'Google', 'TikTok', 'Microsoft', 'Stripe'].map(term => (
-                  <button key={term} onClick={() => { setSearch(term); setShowModal(true); }}>{term}</button>
+                  <button key={term} onClick={() => setSearchCompany(term)}>{term}</button>
                 ))}
               </div>
 
               <div className="review-count">
                 <div className="mini-avatars">
-                  <span style={{ backgroundImage: 'linear-gradient(135deg,#fde68a,#92400e)' }} />
-                  <span style={{ backgroundImage: 'linear-gradient(135deg,#dbeafe,#0f172a)' }} />
-                  <span style={{ backgroundImage: 'linear-gradient(135deg,#fee2e2,#991b1b)' }} />
-                  <span style={{ backgroundImage: 'linear-gradient(135deg,#dcfce7,#166534)' }} />
+                  <BlurredAvatar photo="https://i.pravatar.cc/100?img=12" />
+                  <BlurredAvatar photo="https://i.pravatar.cc/100?img=47" />
+                  <BlurredAvatar photo="https://i.pravatar.cc/100?img=33" />
+                  <BlurredAvatar photo="https://i.pravatar.cc/100?img=5" />
                 </div>
                 <strong>{(12482 + reviews.length).toLocaleString()} anonymous reviews</strong>
                 <span>and counting</span>
@@ -1036,7 +1223,7 @@ export default function App(props) {
       </main>
 
       <footer className="site-footer">
-        <div className="brand">Manager <span>Score</span></div>
+        <div className="brand">Manager<span>Score</span></div>
         <nav>
           <a href="#about">About</a>
           <a href="#reviews">Contact</a>

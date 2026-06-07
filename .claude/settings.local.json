@@ -3,7 +3,16 @@
     "allow": [
       "Bash(chromium-cli --session rmm)",
       "Bash(curl -s http://localhost:5173)",
-      "Bash(pkill -f \"vite\")"
+      "Bash(pkill -f \"vite\")",
+      "Bash(curl -s http://localhost:3000 -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(grep -o '<span class=\"company-mark[^>]*>[^<]*</span>\\\\|<span class=\"company-mark[^>]*></span>\\\\|<span class=\"company-mark amazon-mark\">.\\\\{0,80\\\\}')",
+      "Bash(grep -o '<svg[^>]*>.\\\\{0,300\\\\}')",
+      "Bash(grep -o '<div class=\"mini-avatars\">.\\\\{0,900\\\\}')",
+      "Bash(grep -o '<div class=\"mini-avatars\">.\\\\{0,700\\\\}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"https://i.pravatar.cc/100?img=12\")",
+      "Bash(grep -o '<div class=\"hero-search-wrap\">.\\\\{0,1100\\\\}')",
+      "Bash(awk '/^function AuthModal/{f=1} f{print NR\": \"$0} /^}$/{if\\(f\\){f=0}}')"
     ]
   }
 }
