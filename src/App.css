@@ -742,6 +742,27 @@ button, input, textarea, select { font: inherit; }
   font-size: 13px;
   font-weight: 800;
 }
+.profile-score-empty {
+  background: #f1f5f9;
+  color: #64748b;
+}
+.profile-score-empty small {
+  color: #64748b;
+}
+.profile-empty-state {
+  padding: 28px 24px;
+  margin-bottom: 13px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  background: #fff;
+  text-align: center;
+}
+.profile-empty-state p {
+  margin: 0 0 16px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.7;
+}
 .profile-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

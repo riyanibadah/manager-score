@@ -993,6 +993,11 @@ export default function App(props) {
 
   function handleSearch() {
     if (!canSearch) return;
+    fetch('/api/managers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ managerName: searchName.trim(), company: searchCompany.trim() }),
+    }).catch(() => {});
     if (unlocked) { setShowModal(true); return; }
     setSearchStage('loading');
     setTimeout(() => setSearchStage('auth'), 1300);

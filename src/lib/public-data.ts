@@ -26,7 +26,6 @@ export async function getManagerProfile(companySlug: string, managerSlug: string
     where: {
       slug: managerSlug,
       company: { slug: companySlug },
-      reviews: { some: { status: "APPROVED" } },
     },
     include: {
       company: true,

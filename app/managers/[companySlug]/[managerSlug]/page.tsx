@@ -62,13 +62,17 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
       name: profile.company,
     },
     url: canonicalUrl,
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: profile.averageScore.toFixed(1),
-      bestRating: "5",
-      worstRating: "1",
-      reviewCount: profile.reviewCount,
-    },
+    ...(profile.reviewCount > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: profile.averageScore.toFixed(1),
+            bestRating: "5",
+            worstRating: "1",
+            reviewCount: profile.reviewCount,
+          },
+        }
+      : {}),
     review: profile.reviews.slice(0, 10).map((review) => ({
       "@type": "Review",
       reviewBody: review.reviewText,
@@ -94,7 +98,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
       />
       <nav className="profile-topbar">
         <a className="brand" href="/">
-          Manager <span>Score</span><i />
+          Manager<span>Score</span><i />
         </a>
         <a className="btn-primary" href="/#reviews">Write review</a>
       </nav>
@@ -105,12 +109,23 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
           <p className="profile-kicker">{profile.company}</p>
           <h1>{profile.name} Reviews</h1>
           <p className="profile-subtitle">
-            {profile.title}{profile.department ? ` · ${profile.department}` : ""} at {profile.company}
+            {[profile.title, profile.department].filter(Boolean).join(" · ")}
+            {profile.title || profile.department ? " at " : ""}
+            {profile.company}
           </p>
         </div>
-        <div className="profile-score">
-          <span>{profile.averageScore.toFixed(1)}</span>
-          <small>{profile.reviewCount} review{profile.reviewCount === 1 ? "" : "s"}</small>
+        <div className={`profile-score${profile.reviewCount === 0 ? " profile-score-empty" : ""}`}>
+          {profile.reviewCount > 0 ? (
+            <>
+              <span>{profile.averageScore.toFixed(1)}</span>
+              <small>{profile.reviewCount} review{profile.reviewCount === 1 ? "" : "s"}</small>
+            </>
+          ) : (
+            <>
+              <span>—</span>
+              <small>Not enough reviews yet</small>
+            </>
+          )}
         </div>
       </section>
 
@@ -143,6 +158,12 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
 
       <section className="profile-section">
         <h2>Anonymous Reviews</h2>
+        {profile.reviews.length === 0 && (
+          <div className="profile-empty-state">
+            <p>No one has reviewed {profile.name} yet. Be the first to anonymously share what it&apos;s like to work with them.</p>
+            <a className="btn-primary" href="/#reviews">Write the first anonymous review →</a>
+          </div>
+        )}
         <div className="profile-review-list">
           {profile.reviews.map((review) => (
             <article className="profile-review-card" key={review.id}>
