@@ -128,6 +128,8 @@ function serializeReview(review: {
   };
   tags: Array<{ tag: string; sentiment: string }>;
 }) {
+  const overall = Math.round(average([review.communication, review.worklife, review.recognition]) * 10) / 10;
+
   return {
     id: review.id,
     managerName: review.manager.name,
@@ -141,7 +143,7 @@ function serializeReview(review: {
     workedWith: review.workedWith,
     employmentType: review.employmentType,
     employeeStatus: review.employeeStatus,
-    overall: review.overall,
+    overall,
     communication: review.communication,
     worklife: review.worklife,
     recognition: review.recognition,

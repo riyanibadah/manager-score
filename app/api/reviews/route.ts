@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { cookies } from "next/headers";
 import { prisma } from "../../../src/lib/prisma";
 import { getRecentReviews } from "../../../src/lib/public-data";
 import { hashValue, normalizeReview, slugify } from "../../../src/lib/reviews";
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         id: created.id,
         status: created.status,
@@ -94,6 +95,13 @@ export async function POST(request: Request) {
       },
       { status: 201 },
     );
+    response.cookies.set("rmm_unlocked", "true", {
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+    return response;
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json(

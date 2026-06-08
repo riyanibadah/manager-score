@@ -236,6 +236,7 @@ function Icon({ name, size = 22 }) {
     star: <path d="m12 2.5 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5-5.8-3.1-5.8 3.1 1.1-6.5-4.7-4.6 6.5-.9L12 2.5Z" />,
     shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />,
     lock: <><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>,
+    user: <><path d="M20 21a8 8 0 0 0-16 0" /><circle cx="12" cy="8" r="4" /></>,
     chart: <><path d="M4 19V5" /><path d="M8 19v-7" /><path d="M12 19V9" /><path d="M16 19V4" /><path d="M20 19v-10" /></>,
     edit: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></>,
     arrow: <><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></>,
@@ -895,13 +896,11 @@ function Nav({ onLogoClick, onGetStarted }) {
         <div onClick={onLogoClick} className="brand">
           Manager<span>Score</span><i />
         </div>
-        <div className="nav-links">
-          <a href="#reviews">Managers</a>
-          <button onClick={onGetStarted}>Write a Review</button>
-          <a href="#about">About</a>
-        </div>
         <div className="nav-actions">
-          <button className="nav-signin" onClick={onGetStarted}>Anonymous</button>
+          <button className="nav-signin" onClick={onGetStarted}>
+            <Icon name="user" size={16} />
+            <span>Sign in</span>
+          </button>
           <button className="btn-primary" style={{ padding: '14px 23px', fontSize: 14 }} onClick={onGetStarted}>Write review</button>
         </div>
       </div>
@@ -926,7 +925,7 @@ function ProfileNav({ onLogoClick, onBack, onAddReview }) {
 const CONTENT = { maxWidth: 1160, margin: '0 auto', padding: '0 1.25rem' };
 
 export default function App(props) {
-  const { initialReviews = [] } = props || {};
+  const { initialReviews = [], initialUnlocked = false } = props || {};
   const [reviews, setReviews] = useState(initialReviews);
   const [view, setView] = useState('home');
   const [activeKey, setActiveKey] = useState(null);
@@ -935,12 +934,22 @@ export default function App(props) {
   const [searchCompany, setSearchCompany] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [searchStage, setSearchStage] = useState(null); // null | 'loading' | 'auth' | 'gate'
-  const [unlocked, setUnlocked] = useState(false);
+  const [unlocked, setUnlocked] = useState(initialUnlocked);
   const [pendingUnlock, setPendingUnlock] = useState(false);
   const allReviews = [...reviews, ...SAMPLE_REVIEWS];
 
   useEffect(() => {
-    setUnlocked(localStorage.getItem(UNLOCK_KEY) === 'true');
+    const browserUnlocked = initialUnlocked || localStorage.getItem(UNLOCK_KEY) === 'true';
+    setUnlocked(browserUnlocked);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('review') === '1') {
+      const managerName = params.get('manager') || '';
+      const company = params.get('company') || '';
+      setPendingUnlock(true);
+      setPrefill({ managerName, company });
+      setView('submit');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     setReviews(loadData().reviews || []);
     fetch('/api/reviews')
       .then(res => res.ok ? res.json() : null)
@@ -962,23 +971,28 @@ export default function App(props) {
     const next = [...reviews, review];
     setReviews(next);
     saveData({ reviews: next });
-    fetch('/api/reviews', {
+    let profilePath = profilePathForReview(review);
+    const response = await fetch('/api/reviews', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(review),
-    }).catch(() => {});
+    }).catch(() => null);
+    if (response?.ok) {
+      const data = await response.json().catch(() => null);
+      if (data?.profilePath) profilePath = data.profilePath;
+    }
 
     if (pendingUnlock) {
       localStorage.setItem(UNLOCK_KEY, 'true');
       setUnlocked(true);
       setPendingUnlock(false);
-      setView('home');
-      setShowModal(true);
+      window.location.href = profilePath;
       return;
     }
 
-    setActiveKey(managerKey(review));
-    setView('profile');
+    localStorage.setItem(UNLOCK_KEY, 'true');
+    setUnlocked(true);
+    window.location.href = profilePath;
   }
 
   const managerMap = {};
@@ -999,16 +1013,23 @@ export default function App(props) {
     : [];
   const searchTerm = canSearch ? `${searchName.trim()} at ${searchCompany.trim()}` : '';
 
-  function handleSearch() {
+  async function handleSearch() {
     if (!canSearch) return;
-    fetch('/api/managers', {
+    setSearchStage('loading');
+    const response = await fetch('/api/managers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ managerName: searchName.trim(), company: searchCompany.trim() }),
-    }).catch(() => {});
-    if (unlocked) { setShowModal(true); return; }
-    setSearchStage('loading');
-    setTimeout(() => setSearchStage('auth'), 1300);
+    }).catch(() => null);
+    if (response?.ok) {
+      const data = await response.json().catch(() => null);
+      if (data?.profilePath) {
+        window.location.href = data.profilePath;
+        return;
+      }
+    }
+    setSearchStage(null);
+    setShowModal(true);
   }
 
   function handleAuthContinue() {
@@ -1189,7 +1210,6 @@ export default function App(props) {
         <section id="reviews" className="reviews-section">
           <div className="section-head">
             <h2>Recent reviews</h2>
-            <button onClick={() => setShowModal(true)}>View all reviews <Icon name="arrow" size={18} /></button>
           </div>
           <div className="recent-list">
             {recentReviews.map(review => (

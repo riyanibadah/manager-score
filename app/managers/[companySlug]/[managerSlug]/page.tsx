@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { getManagerProfile } from "../../../../src/lib/public-data";
 import { managerPath, siteUrl } from "../../../../src/lib/seo";
 
@@ -51,7 +52,10 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
 
   if (!profile) notFound();
 
+  const cookieStore = await cookies();
+  const unlocked = cookieStore.get("rmm_unlocked")?.value === "true";
   const canonicalUrl = `${siteUrl()}${profile.profilePath}`;
+  const reviewHref = `/?review=1&manager=${encodeURIComponent(profile.name)}&company=${encodeURIComponent(profile.company)}`;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -62,7 +66,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
       name: profile.company,
     },
     url: canonicalUrl,
-    ...(profile.reviewCount > 0
+    ...(unlocked && profile.reviewCount > 0
       ? {
           aggregateRating: {
             "@type": "AggregateRating",
@@ -73,21 +77,25 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
           },
         }
       : {}),
-    review: profile.reviews.slice(0, 10).map((review) => ({
-      "@type": "Review",
-      reviewBody: review.reviewText,
-      datePublished: review.date,
-      author: {
-        "@type": "Person",
-        name: review.reviewerRole || "Anonymous employee",
-      },
-      reviewRating: {
-        "@type": "Rating",
-        ratingValue: review.overall.toFixed(1),
-        bestRating: "5",
-        worstRating: "1",
-      },
-    })),
+    ...(unlocked
+      ? {
+          review: profile.reviews.slice(0, 10).map((review) => ({
+            "@type": "Review",
+            reviewBody: review.reviewText,
+            datePublished: review.date,
+            author: {
+              "@type": "Person",
+              name: review.reviewerRole || "Anonymous employee",
+            },
+            reviewRating: {
+              "@type": "Rating",
+              ratingValue: review.overall.toFixed(1),
+              bestRating: "5",
+              worstRating: "1",
+            },
+          })),
+        }
+      : {}),
   };
 
   return (
@@ -100,7 +108,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
         <a className="brand" href="/">
           Manager<span>Score</span><i />
         </a>
-        <a className="btn-primary" href="/#reviews">Write review</a>
+        <a className="btn-primary" href={reviewHref}>Write review</a>
       </nav>
 
       <section className="profile-hero">
@@ -114,36 +122,48 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
             {profile.company}
           </p>
         </div>
-        <div className={`profile-score${profile.reviewCount === 0 ? " profile-score-empty" : ""}`}>
-          {profile.reviewCount > 0 ? (
+        <div className={`profile-score${!unlocked || profile.reviewCount === 0 ? " profile-score-empty" : ""}`}>
+          {unlocked && profile.reviewCount > 0 ? (
             <>
               <span>{profile.averageScore.toFixed(1)}</span>
               <small>{profile.reviewCount} review{profile.reviewCount === 1 ? "" : "s"}</small>
             </>
+          ) : profile.reviewCount > 0 ? (
+            <>
+              <span className="profile-score-skeleton" aria-label="Score locked" />
+              <small>{profile.reviewCount} anonymous review{profile.reviewCount === 1 ? "" : "s"}</small>
+            </>
           ) : (
             <>
               <span>—</span>
-              <small>Not enough reviews yet</small>
+              <small>Profile requested</small>
             </>
           )}
         </div>
       </section>
 
       <section className="profile-stats">
-        {[
-          ["Communication", profile.communication.toFixed(1)],
-          ["Support & Growth", profile.supportGrowth.toFixed(1)],
-          ["Work-Life Balance", profile.worklife.toFixed(1)],
-          ["Would Work Again", `${profile.wouldAgainPct}%`],
-        ].map(([label, value]) => (
-          <div key={label}>
-            <strong>{value}</strong>
+        {(unlocked
+          ? [
+              ["Communication", profile.communication.toFixed(1)],
+              ["Support & Growth", profile.supportGrowth.toFixed(1)],
+              ["Work-Life Balance", profile.worklife.toFixed(1)],
+              ["Would Work Again", `${profile.wouldAgainPct}%`],
+            ]
+          : [
+              ["Communication", ""],
+              ["Support & Growth", ""],
+              ["Work-Life Balance", ""],
+              ["Would Work Again", ""],
+            ]).map(([label, value]) => (
+          <div key={label} className={!unlocked ? "profile-stat-locked" : undefined}>
+            {unlocked ? <strong>{value}</strong> : <strong aria-label={`${label} locked`} />}
             <span>{label}</span>
           </div>
         ))}
       </section>
 
-      {profile.tags.length > 0 && (
+      {unlocked && profile.tags.length > 0 && (
         <section className="profile-section">
           <h2>Common Tags</h2>
           <div className="profile-tags">
@@ -158,13 +178,43 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
 
       <section className="profile-section">
         <h2>Anonymous Reviews</h2>
-        {profile.reviews.length === 0 && (
-          <div className="profile-empty-state">
-            <p>No one has reviewed {profile.name} yet. Be the first to anonymously share what it&apos;s like to work with them.</p>
-            <a className="btn-primary" href="/#reviews">Write the first anonymous review →</a>
+        {!unlocked && (
+          <div className="profile-empty-state profile-lock-state">
+            <strong>Unlock this profile with one anonymous review</strong>
+            <p>
+              See the full rating breakdown, employee context, tags, and anonymous review text after
+              contributing your own review.
+            </p>
+            <a className="btn-primary" href={reviewHref}>Write an anonymous review to unlock →</a>
           </div>
         )}
-        <div className="profile-review-list">
+        {unlocked && profile.reviews.length === 0 && (
+          <div className="profile-empty-state">
+            <p>No one has reviewed {profile.name} yet. Be the first to anonymously share what it&apos;s like to work with them.</p>
+            <a className="btn-primary" href={reviewHref}>Write the first anonymous review →</a>
+          </div>
+        )}
+        {!unlocked && profile.reviewCount > 0 && (
+          <div className="profile-review-list" aria-hidden="true">
+            {Array.from({ length: Math.min(profile.reviewCount, 3) }).map((_, index) => (
+              <article className="profile-review-card profile-review-card-locked" key={index}>
+                <header>
+                  <div>
+                    <strong aria-label="Reviewer locked" />
+                    <p aria-label="Employee context locked" />
+                  </div>
+                  <span aria-label="Review score locked" />
+                </header>
+                <p aria-label="Review text locked" />
+                <footer>
+                  <span aria-label="Review date locked" />
+                  <span aria-label="Work-again answer locked" />
+                </footer>
+              </article>
+            ))}
+          </div>
+        )}
+        {unlocked && <div className="profile-review-list">
           {profile.reviews.map((review) => (
             <article className="profile-review-card" key={review.id}>
               <header>
@@ -185,7 +235,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
               </footer>
             </article>
           ))}
-        </div>
+        </div>}
       </section>
     </main>
   );
