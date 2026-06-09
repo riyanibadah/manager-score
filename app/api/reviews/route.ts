@@ -39,6 +39,13 @@ export async function POST(request: Request) {
         review.reviewText.toLowerCase(),
       ].join("|"),
     );
+    const limitResponse = await enforceReviewRateLimit({
+      submitterIpHash,
+      companySlug,
+      managerSlug,
+    });
+
+    if (limitResponse) return limitResponse;
 
     const company = await prisma.company.upsert({
       where: { slug: companySlug },
@@ -122,4 +129,66 @@ function hashIp(request: Request) {
   const realIp = request.headers.get("x-real-ip");
   const ip = forwardedFor || realIp;
   return ip ? hashValue(ip) : undefined;
+}
+
+async function enforceReviewRateLimit({
+  submitterIpHash,
+  companySlug,
+  managerSlug,
+}: {
+  submitterIpHash?: string;
+  companySlug: string;
+  managerSlug: string;
+}) {
+  if (!submitterIpHash) return null;
+
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [hourCount, dayCount, sameManagerDayCount] = await Promise.all([
+    prisma.review.count({
+      where: {
+        submitterIpHash,
+        createdAt: { gte: oneHourAgo },
+      },
+    }),
+    prisma.review.count({
+      where: {
+        submitterIpHash,
+        createdAt: { gte: oneDayAgo },
+      },
+    }),
+    prisma.review.count({
+      where: {
+        submitterIpHash,
+        createdAt: { gte: oneDayAgo },
+        manager: {
+          slug: managerSlug,
+          company: { slug: companySlug },
+        },
+      },
+    }),
+  ]);
+
+  if (sameManagerDayCount >= 1) {
+    return NextResponse.json(
+      { error: "You already reviewed this manager recently. Please try again tomorrow." },
+      { status: 429 },
+    );
+  }
+
+  if (hourCount >= 3) {
+    return NextResponse.json(
+      { error: "Too many reviews submitted recently. Please try again later." },
+      { status: 429 },
+    );
+  }
+
+  if (dayCount >= 10) {
+    return NextResponse.json(
+      { error: "Daily review limit reached. Please try again tomorrow." },
+      { status: 429 },
+    );
+  }
+
+  return null;
 }
