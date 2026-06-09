@@ -62,6 +62,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
   const unlocked = cookieStore.get("rmm_unlocked")?.value === "true" || Boolean(userUnlock);
   const canonicalUrl = `${siteUrl()}${profile.profilePath}`;
   const reviewHref = `/?review=1&manager=${encodeURIComponent(profile.name)}&company=${encodeURIComponent(profile.company)}`;
+  const roleAtCompany = [profile.title, profile.company].filter(Boolean).join(" at ");
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -160,6 +161,18 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
           )}
         </div>
       </section>
+
+      {profile.reviewCount > 0 && (
+        <section className="profile-summary">
+          <p>
+            {profile.reviewCount} {profile.reviewCount === 1 ? "employee has" : "employees have"} anonymously
+            reviewed {profile.name}
+            {roleAtCompany ? `, ${roleAtCompany}` : ""}, sharing feedback on communication, support for growth,
+            and work-life balance.
+            {!unlocked && " Unlock the full ratings and review details by adding your own anonymous review."}
+          </p>
+        </section>
+      )}
 
       <section className="profile-stats">
         {(unlocked

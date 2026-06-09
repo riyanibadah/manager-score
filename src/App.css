@@ -859,10 +859,25 @@ button, input, textarea, select { font: inherit; }
 }
 .profile-topbar,
 .profile-hero,
+.profile-summary,
 .profile-stats,
 .profile-section {
   width: min(100% - 40px, 1040px);
   margin: 0 auto;
+}
+.profile-summary {
+  margin-top: 14px;
+}
+.profile-summary p {
+  margin: 0;
+  padding: 18px 22px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--purple);
+  border-radius: 14px;
+  background: #fff;
+  color: #475069;
+  font-size: 16px;
+  line-height: 1.6;
 }
 .profile-topbar {
   min-height: 86px;
