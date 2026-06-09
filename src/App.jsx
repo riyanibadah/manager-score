@@ -263,6 +263,26 @@ function Icon({ name, size = 22 }) {
   return <svg {...common} stroke="currentColor">{paths[name]}</svg>;
 }
 
+function LinkedInLink({ url, withText = false }) {
+  if (!url) return null;
+  return (
+    <a
+      className={`linkedin-link${withText ? ' linkedin-link-text' : ''}`}
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer nofollow"
+      onClick={e => e.stopPropagation()}
+      aria-label="View LinkedIn profile"
+      title="View LinkedIn profile"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0z" />
+      </svg>
+      {withText && <span>LinkedIn</span>}
+    </a>
+  );
+}
+
 function StarPicker({ value, onChange, size = 28 }) {
   const [hover, setHover] = useState(0);
   return (
@@ -329,7 +349,10 @@ function ManagerCard({ reviews, onClick }) {
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
           <Avatar name={r0.managerName} />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>{r0.managerName}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>{r0.managerName}</span>
+              <LinkedInLink url={r0.linkedinUrl} />
+            </div>
             <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{r0.managerTitle}</div>
             <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
               {r0.company}{r0.department ? ` · ${r0.department}` : ''} · {reviews.length} review{reviews.length !== 1 ? 's' : ''}
@@ -457,7 +480,10 @@ function ProfileView({ reviews, onBack, onAddReview }) {
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <Avatar name={r0.managerName} size={64} />
           <div style={{ flex: 1, minWidth: 160 }}>
-            <div style={{ fontWeight: 800, fontSize: 22, color: '#0f172a', letterSpacing: '-0.5px' }}>{r0.managerName}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontWeight: 800, fontSize: 22, color: '#0f172a', letterSpacing: '-0.5px' }}>{r0.managerName}</span>
+              <LinkedInLink url={r0.linkedinUrl} />
+            </div>
             <div style={{ fontSize: 14, color: '#64748b', marginTop: 4 }}>{r0.managerTitle}</div>
             <div style={{ fontSize: 14, color: '#64748b' }}>{r0.company}{r0.department ? ` · ${r0.department}` : ''}</div>
             <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{reviews.length} review{reviews.length !== 1 ? 's' : ''}</div>
@@ -551,6 +577,18 @@ function ErrorBox({ message }) {
   );
 }
 
+function looksLikeLinkedin(value) {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return true; // optional
+  try {
+    const url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    const host = url.hostname.toLowerCase().replace(/^www\./, '');
+    return host === 'linkedin.com' || host.endsWith('.linkedin.com');
+  } catch {
+    return false;
+  }
+}
+
 function SubmitForm({ initialValues, onClose, onSubmit }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
@@ -558,6 +596,7 @@ function SubmitForm({ initialValues, onClose, onSubmit }) {
     managerTitle: initialValues?.managerTitle || '',
     company: initialValues?.company || '',
     department: initialValues?.department || '',
+    linkedinUrl: '',
     reviewerRole: '',
     workedWith: '',
     employmentType: '',
@@ -623,9 +662,17 @@ function SubmitForm({ initialValues, onClose, onSubmit }) {
               </div>
             ))}
           </div>
+          <div style={{ margin: '1.25rem 0' }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6, display: 'block' }}>
+              Their LinkedIn profile <span style={{ color: '#94a3b8', fontWeight: 500 }}>· optional</span>
+            </label>
+            <input className="field-input" type="url" inputMode="url" placeholder="https://www.linkedin.com/in/username"
+              value={form.linkedinUrl} onChange={e => set('linkedinUrl', e.target.value)} />
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Helps others confirm they have the right manager. Your review stays anonymous.</div>
+          </div>
           <ErrorBox message={error} />
           <button className="btn-primary" style={{ width: '100%', padding: '13px', fontSize: 14 }}
-            onClick={() => { if (!step1Valid) { setError('Please fill in the required fields.'); return; } setError(''); setStep(2); }}>
+            onClick={() => { if (!step1Valid) { setError('Please fill in the required fields.'); return; } if (!looksLikeLinkedin(form.linkedinUrl)) { setError('Enter a valid LinkedIn URL or leave it blank.'); return; } setError(''); setStep(2); }}>
             Continue →
           </button>
         </div>
@@ -909,7 +956,13 @@ function ReviewGateModal({ searchTerm, onClose, onWriteReview }) {
 function Nav({ onLogoClick, onGetStarted }) {
   const session = authClient.useSession();
   const user = session.data?.user;
-  const accountInitial = user?.email?.trim()?.[0]?.toUpperCase() || 'U';
+  const email = user?.email?.trim() || '';
+  const accountInitial = email[0]?.toUpperCase() || 'U';
+  const displayName = (user?.name?.trim())
+    || (email
+      ? email.split('@')[0].split(/[._-]+/).filter(Boolean)
+          .map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
+      : 'there');
   const [accountOpen, setAccountOpen] = useState(false);
 
   async function handleSignIn() {
@@ -948,11 +1001,19 @@ function Nav({ onLogoClick, onGetStarted }) {
           {user ? (
             <div className="nav-account-wrap">
               <button className="nav-account" onClick={handleAccountToggle} aria-label="Account menu" aria-expanded={accountOpen}>
-                <span>{accountInitial}</span>
+                <span className="nav-account-avatar">{accountInitial}</span>
+                <span className="nav-account-greeting">Hi, {displayName}</span>
               </button>
               {accountOpen ? (
                 <div className="account-menu">
-                  <div className="account-menu-status">Signed in</div>
+                  <div className="account-menu-head">
+                    <div className="account-menu-avatar">{accountInitial}</div>
+                    <div className="account-menu-info">
+                      <div className="account-menu-name">{displayName}</div>
+                      {email ? <div className="account-menu-email" title={email}>{email}</div> : null}
+                    </div>
+                  </div>
+                  <div className="account-menu-divider" />
                   <button onClick={handleSignOut}>Sign out</button>
                 </div>
               ) : null}

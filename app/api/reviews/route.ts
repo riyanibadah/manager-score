@@ -60,12 +60,14 @@ export async function POST(request: Request) {
         name: review.managerName,
         title: review.managerTitle,
         department: review.department,
+        ...(review.linkedinUrl ? { linkedinUrl: review.linkedinUrl } : {}),
       },
       create: {
         name: review.managerName,
         slug: managerSlug,
         title: review.managerTitle,
         department: review.department,
+        linkedinUrl: review.linkedinUrl,
         companyId: company.id,
       },
     });

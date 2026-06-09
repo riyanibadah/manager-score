@@ -41,6 +41,7 @@ model Manager {
   slug      String
   title     String
   department String?
+  linkedinUrl String?
   companyId String
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   reviews   Review[]

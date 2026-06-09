@@ -6,6 +6,7 @@ export type IncomingReview = {
   managerTitle?: string;
   company?: string;
   department?: string;
+  linkedinUrl?: string;
   reviewerRole?: string;
   workedWith?: string;
   employmentType?: string;
@@ -46,6 +47,7 @@ export function normalizeReview(input: IncomingReview) {
     managerTitle,
     company,
     department: cleanOptional(input.department),
+    linkedinUrl: cleanLinkedin(input.linkedinUrl),
     reviewerRole: cleanOptional(input.reviewerRole),
     workedWith: allowedOptional(input.workedWith, [
       "Less than 6 months",
@@ -105,6 +107,27 @@ function rating(value: unknown, label: string) {
     throw new Error(`${label} rating must be between 1 and 5.`);
   }
   return numeric;
+}
+
+function cleanLinkedin(value: unknown) {
+  const cleaned = cleanOptional(value);
+  if (!cleaned) return undefined;
+
+  const withProtocol = /^https?:\/\//i.test(cleaned) ? cleaned : `https://${cleaned}`;
+  let url: URL;
+  try {
+    url = new URL(withProtocol);
+  } catch {
+    throw new Error("Enter a valid LinkedIn URL.");
+  }
+
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  if (host !== "linkedin.com" && !host.endsWith(".linkedin.com")) {
+    throw new Error("LinkedIn URL must point to linkedin.com.");
+  }
+
+  url.protocol = "https:";
+  return url.toString();
 }
 
 function allowedOptional(value: unknown, allowed: string[]) {

@@ -68,6 +68,7 @@ export async function getManagerProfile(companySlug: string, managerSlug: string
     slug: manager.slug,
     title: manager.title,
     department: manager.department,
+    linkedinUrl: manager.linkedinUrl,
     company: manager.company.name,
     companySlug: manager.company.slug,
     profilePath: managerPath(manager.company.slug, manager.slug),
@@ -124,6 +125,7 @@ function serializeReview(review: {
     slug: string;
     title: string;
     department: string | null;
+    linkedinUrl: string | null;
     company: { name: string; slug: string };
   };
   tags: Array<{ tag: string; sentiment: string }>;
@@ -139,6 +141,7 @@ function serializeReview(review: {
     companySlug: review.manager.company.slug,
     profilePath: managerPath(review.manager.company.slug, review.manager.slug),
     department: review.manager.department,
+    linkedinUrl: review.manager.linkedinUrl,
     reviewerRole: review.reviewerRole,
     workedWith: review.workedWith,
     employmentType: review.employmentType,
