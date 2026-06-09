@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { authClient } from "./lib/auth-client";
 
 const NAVY = '#080b1a';
 const PURPLE = '#5b2df5';
@@ -135,6 +136,23 @@ function scoreInfo(s) {
   return { bg: '#fee2e2', fg: '#b91c1c', label: 'Avoid' };
 }
 function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
+function relativeTime(date) {
+  const then = new Date(date).getTime();
+  if (!Number.isFinite(then)) return 'Recently';
+  const seconds = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}w ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
+}
 function calculatedOverall(review) {
   const ratings = [review.communication, review.recognition, review.worklife].map(Number).filter(Boolean);
   return ratings.length ? avg(ratings) : Number(review.overall) || 0;
@@ -361,8 +379,7 @@ function ReviewRow({ review, onClick, href }) {
       <div className="review-copy-cell">
         <p>{review.reviewText}</p>
         <div className="review-meta">
-          <span>{review.id.startsWith('sample') ? ['2h ago', '5h ago', '1d ago', '2d ago'][Number(review.id.split('-')[1]) - 1] : 'Just now'}</span>
-          <span>{new Date(review.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+          <span>{review.id.startsWith('sample') ? ['2h ago', '5h ago', '1d ago', '2d ago'][Number(review.id.split('-')[1]) - 1] : relativeTime(review.date)}</span>
         </div>
       </div>
       <span className="row-chevron"><Icon name="chevron" size={27} /></span>
@@ -890,6 +907,37 @@ function ReviewGateModal({ searchTerm, onClose, onWriteReview }) {
 }
 
 function Nav({ onLogoClick, onGetStarted }) {
+  const session = authClient.useSession();
+  const user = session.data?.user;
+  const accountInitial = user?.email?.trim()?.[0]?.toUpperCase() || 'U';
+  const [accountOpen, setAccountOpen] = useState(false);
+
+  async function handleSignIn() {
+    const hasGoogleConfig = await fetch('/api/auth/ready')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => Boolean(data?.google))
+      .catch(() => false);
+
+    if (!hasGoogleConfig) {
+      alert('Google sign in is not configured yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET first.');
+      return;
+    }
+
+    await authClient.signIn.social({
+      provider: 'google',
+      callbackURL: window.location.href,
+    });
+  }
+
+  async function handleSignOut() {
+    await authClient.signOut();
+    window.location.reload();
+  }
+
+  function handleAccountToggle() {
+    setAccountOpen(open => !open);
+  }
+
   return (
     <nav className="rmm-nav">
       <div className="nav-inner">
@@ -897,10 +945,24 @@ function Nav({ onLogoClick, onGetStarted }) {
           Manager<span>Score</span><i />
         </div>
         <div className="nav-actions">
-          <button className="nav-signin" onClick={onGetStarted}>
-            <Icon name="user" size={16} />
-            <span>Sign in</span>
-          </button>
+          {user ? (
+            <div className="nav-account-wrap">
+              <button className="nav-account" onClick={handleAccountToggle} aria-label="Account menu" aria-expanded={accountOpen}>
+                <span>{accountInitial}</span>
+              </button>
+              {accountOpen ? (
+                <div className="account-menu">
+                  <div className="account-menu-status">Signed in</div>
+                  <button onClick={handleSignOut}>Sign out</button>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <button className="nav-signin" onClick={handleSignIn}>
+              <Icon name="user" size={16} />
+              <span>Sign in</span>
+            </button>
+          )}
           <button className="btn-primary" style={{ padding: '14px 23px', fontSize: 14 }} onClick={onGetStarted}>Write review</button>
         </div>
       </div>
@@ -1240,7 +1302,7 @@ export default function App(props) {
         <section id="about" className="trust-grid">
           {[
             ['lock', '100% Anonymous', 'We never reveal your identity.'],
-            ['shield', 'No Fake Reviews', 'We verify employees, not accounts.'],
+            ['shield', 'Useful Before You Join', 'Spot patterns before accepting the offer.'],
             ['chart', 'Real Insights', 'Unfiltered reviews from real employees.'],
             ['heart', 'Better Workplaces', 'Transparency leads to better teams.'],
           ].map(([icon, title, copy]) => (

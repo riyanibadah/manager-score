@@ -5,6 +5,7 @@ import { prisma } from "../../../src/lib/prisma";
 import { getRecentReviews } from "../../../src/lib/public-data";
 import { hashValue, normalizeReview, slugify } from "../../../src/lib/reviews";
 import { managerPath } from "../../../src/lib/seo";
+import { auth } from "../../../src/lib/auth";
 
 export async function GET() {
   if (!process.env.DATABASE_URL) {
@@ -92,6 +93,14 @@ export async function POST(request: Request) {
         },
       },
     });
+    const session = await getRequestSession(request);
+    if (session?.user?.id) {
+      await prisma.userUnlock.upsert({
+        where: { userId: session.user.id },
+        update: {},
+        create: { userId: session.user.id },
+      });
+    }
 
     const response = NextResponse.json(
       {
@@ -129,6 +138,14 @@ function hashIp(request: Request) {
   const realIp = request.headers.get("x-real-ip");
   const ip = forwardedFor || realIp;
   return ip ? hashValue(ip) : undefined;
+}
+
+async function getRequestSession(request: Request) {
+  try {
+    return await auth.api.getSession({ headers: request.headers });
+  } catch {
+    return null;
+  }
 }
 
 async function enforceReviewRateLimit({

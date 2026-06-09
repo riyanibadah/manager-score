@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getManagerProfile } from "../../../../src/lib/public-data";
 import { managerPath, siteUrl } from "../../../../src/lib/seo";
+import { auth } from "../../../../src/lib/auth";
+import { prisma } from "../../../../src/lib/prisma";
 
 type ManagerPageProps = {
   params: Promise<{
@@ -53,7 +55,11 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
   if (!profile) notFound();
 
   const cookieStore = await cookies();
-  const unlocked = cookieStore.get("rmm_unlocked")?.value === "true";
+  const session = await auth.api.getSession({ headers: await headers() }).catch(() => null);
+  const userUnlock = session?.user?.id
+    ? await prisma.userUnlock.findUnique({ where: { userId: session.user.id } })
+    : null;
+  const unlocked = cookieStore.get("rmm_unlocked")?.value === "true" || Boolean(userUnlock);
   const canonicalUrl = `${siteUrl()}${profile.profilePath}`;
   const reviewHref = `/?review=1&manager=${encodeURIComponent(profile.name)}&company=${encodeURIComponent(profile.company)}`;
   const jsonLd = {
