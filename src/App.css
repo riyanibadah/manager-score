@@ -1125,6 +1125,11 @@ button, input, textarea, select { font: inherit; }
   font-size: 13px;
   line-height: 1.5;
 }
+.profile-review-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
 .profile-review-card header > span {
   min-width: 54px;
   padding: 8px 10px;
@@ -1298,6 +1303,22 @@ button, input, textarea, select { font: inherit; }
 .safety-check input {
   margin-top: 3px;
   accent-color: var(--purple);
+}
+
+.report-review-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.report-review-link:hover {
+  color: #64748b;
 }
 
 .modal-backdrop {

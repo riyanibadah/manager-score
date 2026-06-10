@@ -32,6 +32,13 @@ export function hashValue(value: string) {
   return createHash("sha256").update(`${salt}:${value}`).digest("hex");
 }
 
+export function hashRequestIp(request: Request) {
+  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const realIp = request.headers.get("x-real-ip");
+  const ip = forwardedFor || realIp;
+  return ip ? hashValue(ip) : undefined;
+}
+
 export function normalizeReview(input: IncomingReview) {
   const managerName = cleanRequired(input.managerName, "Manager name");
   const managerTitle = cleanRequired(input.managerTitle, "Manager title");

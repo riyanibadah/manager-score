@@ -107,7 +107,7 @@ export default function TermsPage() {
         </p>
         <p>
           If you believe a review about you is false, defamatory, or violates these Terms, you
-          may report it by emailing{" "}
+          may report it using the "Report review" link shown under any review, or by emailing{" "}
           <a href="mailto:legal@managerscore.io">legal@managerscore.io</a> with the manager and
           company name, the URL of the profile, and a specific, good-faith explanation of why the
           content should be reviewed. We will assess reports against these Terms and applicable

@@ -5,6 +5,7 @@ import { getManagerProfile } from "../../../../src/lib/public-data";
 import { managerPath, siteUrl } from "../../../../src/lib/seo";
 import { auth } from "../../../../src/lib/auth";
 import { prisma } from "../../../../src/lib/prisma";
+import ReportReviewButton from "../../../../src/components/ReportReviewButton";
 
 type ManagerPageProps = {
   params: Promise<{
@@ -262,8 +263,11 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
               </header>
               <p>{review.reviewText}</p>
               <footer>
-                <span>{new Date(review.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
-                <span>{review.wouldAgain ? "Would work for again" : "Would not work for again"}</span>
+                <span className="profile-review-meta">
+                  <span>{new Date(review.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
+                  <span>{review.wouldAgain ? "Would work for again" : "Would not work for again"}</span>
+                </span>
+                <ReportReviewButton reviewId={review.id} />
               </footer>
             </article>
           ))}

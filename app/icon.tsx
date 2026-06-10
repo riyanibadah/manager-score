@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const size = { width: 64, height: 64 };
+export const size = { width: 96, height: 96 };
 export const contentType = "image/png";
 
 export default function Icon() {
@@ -14,17 +14,17 @@ export default function Icon() {
           alignItems: "center",
           justifyContent: "center",
           background: "linear-gradient(135deg, #6d3df1 0%, #5b2df5 45%, #15092f 100%)",
-          borderRadius: 16,
+          borderRadius: 24,
         }}
       >
         <div
           style={{
-            width: 22,
-            height: 28,
-            borderTop: "6px solid #ffffff",
-            borderRight: "6px solid #ffffff",
-            borderRadius: 6,
-            transform: "rotate(-35deg) translateY(-5px)",
+            width: 33,
+            height: 42,
+            borderTop: "9px solid #ffffff",
+            borderRight: "9px solid #ffffff",
+            borderRadius: 9,
+            transform: "rotate(-35deg) translateY(-7.5px)",
           }}
         />
       </div>
