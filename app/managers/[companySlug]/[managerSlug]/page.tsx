@@ -6,6 +6,8 @@ import { managerPath, siteUrl } from "../../../../src/lib/seo";
 import { auth } from "../../../../src/lib/auth";
 import { prisma } from "../../../../src/lib/prisma";
 import ReportReviewButton from "../../../../src/components/ReportReviewButton";
+import { adminEmails } from "../../../../src/lib/admin";
+import { AdminProfileControls, AdminReviewControls } from "../../../../src/components/AdminProfileControls";
 
 type ManagerPageProps = {
   params: Promise<{
@@ -61,6 +63,8 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
     ? await prisma.userUnlock.findUnique({ where: { userId: session.user.id } })
     : null;
   const unlocked = cookieStore.get("rmm_unlocked")?.value === "true" || Boolean(userUnlock);
+  const isAdmin = Boolean(session?.user?.email && adminEmails().has(session.user.email.toLowerCase()));
+  const profileScoreTone = scoreToneClass(profile.averageScore);
   const canonicalUrl = `${siteUrl()}${profile.profilePath}`;
   const reviewHref = `/?review=1&manager=${encodeURIComponent(profile.name)}&company=${encodeURIComponent(profile.company)}`;
   const roleAtCompany = [profile.title, profile.company].filter(Boolean).join(" at ");
@@ -120,6 +124,18 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
       </nav>
 
       <section className="profile-hero">
+        {isAdmin && (
+          <AdminProfileControls
+            manager={{
+              id: profile.id,
+              name: profile.name,
+              title: profile.title,
+              department: profile.department,
+              company: profile.company,
+              linkedinUrl: profile.linkedinUrl,
+            }}
+          />
+        )}
         <div className="profile-avatar">{initials(profile.name)}</div>
         <div>
           <p className="profile-kicker">{profile.company}</p>
@@ -143,23 +159,25 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
             </a>
           )}
         </div>
-        <div className={`profile-score${!unlocked || profile.reviewCount === 0 ? " profile-score-empty" : ""}`}>
-          {unlocked && profile.reviewCount > 0 ? (
-            <>
-              <span>{profile.averageScore.toFixed(1)}</span>
-              <small>{profile.reviewCount} review{profile.reviewCount === 1 ? "" : "s"}</small>
-            </>
-          ) : profile.reviewCount > 0 ? (
-            <>
-              <span className="profile-score-skeleton" aria-label="Score locked" />
-              <small>{profile.reviewCount} anonymous review{profile.reviewCount === 1 ? "" : "s"}</small>
-            </>
-          ) : (
-            <>
-              <span>—</span>
-              <small>Profile requested</small>
-            </>
-          )}
+        <div className="profile-side-actions">
+          <div className={`profile-score ${unlocked && profile.reviewCount > 0 ? profileScoreTone : "profile-score-empty"}`}>
+            {unlocked && profile.reviewCount > 0 ? (
+              <>
+                <span>{profile.averageScore.toFixed(1)}</span>
+                <small>{profile.reviewCount} review{profile.reviewCount === 1 ? "" : "s"}</small>
+              </>
+            ) : profile.reviewCount > 0 ? (
+              <>
+                <span className="profile-score-skeleton" aria-label="Score locked" />
+                <small>{profile.reviewCount} anonymous review{profile.reviewCount === 1 ? "" : "s"}</small>
+              </>
+            ) : (
+              <>
+                <span>—</span>
+                <small>Profile found</small>
+              </>
+            )}
+          </div>
         </div>
       </section>
 
@@ -259,7 +277,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
                       .join(" · ") || "Anonymous context"}
                   </p>
                 </div>
-                <span>{review.overall.toFixed(1)}</span>
+                <span className={`profile-review-score ${scoreToneClass(review.overall)}`}>{review.overall.toFixed(1)}</span>
               </header>
               <p>{review.reviewText}</p>
               <footer>
@@ -268,6 +286,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
                   <span>{review.wouldAgain ? "Would work for again" : "Would not work for again"}</span>
                 </span>
                 <ReportReviewButton reviewId={review.id} />
+                {isAdmin && <AdminReviewControls reviewId={review.id} />}
               </footer>
             </article>
           ))}
@@ -284,4 +303,10 @@ function initials(name: string) {
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase() || "")
     .join("");
+}
+
+function scoreToneClass(score: number) {
+  if (score >= 4) return "profile-score-good";
+  if (score >= 3) return "profile-score-average";
+  return "profile-score-bad";
 }

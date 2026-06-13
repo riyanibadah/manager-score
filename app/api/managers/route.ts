@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../src/lib/prisma";
-import { slugify } from "../../../src/lib/reviews";
+import { canonicalManagerNameForSlug, isFullPersonName, normalizeCompanyName, slugify } from "../../../src/lib/reviews";
 import { managerPath } from "../../../src/lib/seo";
 
 export async function POST(request: Request) {
@@ -12,12 +12,16 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const managerName = cleanName(body?.managerName);
-    const companyName = cleanName(body?.company);
+    const companyName = normalizeCompanyName(cleanName(body?.company));
     const companySlug = slugify(companyName);
-    const managerSlug = slugify(managerName);
+    const managerSlug = slugify(canonicalManagerNameForSlug(managerName));
 
     if (!managerName || !companyName || !companySlug || !managerSlug) {
       return NextResponse.json({ error: "Manager name and company are required." }, { status: 400 });
+    }
+
+    if (!isFullPersonName(managerName)) {
+      return NextResponse.json({ error: "Please enter the manager's first and last name." }, { status: 400 });
     }
 
     const existing = await prisma.manager.findFirst({

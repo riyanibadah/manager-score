@@ -136,6 +136,9 @@ function scoreInfo(s) {
   return { bg: '#fee2e2', fg: '#b91c1c', label: 'Avoid' };
 }
 function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
+function isFullPersonName(value) {
+  return value.trim().split(/\s+/).filter(part => /[A-Za-z]/.test(part)).length >= 2;
+}
 function relativeTime(date) {
   const then = new Date(date).getTime();
   if (!Number.isFinite(then)) return 'Recently';
@@ -608,7 +611,7 @@ function SubmitForm({ initialValues, onClose, onSubmit }) {
   const [error, setError] = useState('');
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const step1Valid = form.managerName.trim() && form.managerTitle.trim() && form.company.trim();
+  const step1Valid = form.managerName.trim() && isFullPersonName(form.managerName) && form.managerTitle.trim() && form.company.trim();
   const derivedOverall = calculatedOverall(form);
   const step2Valid = form.communication && form.worklife && form.recognition && form.wouldAgain !== null;
   const step3Valid = form.reviewText.trim().length >= 80;
@@ -672,7 +675,22 @@ function SubmitForm({ initialValues, onClose, onSubmit }) {
           </div>
           <ErrorBox message={error} />
           <button className="btn-primary" style={{ width: '100%', padding: '13px', fontSize: 14 }}
-            onClick={() => { if (!step1Valid) { setError('Please fill in the required fields.'); return; } if (!looksLikeLinkedin(form.linkedinUrl)) { setError('Enter a valid LinkedIn URL or leave it blank.'); return; } setError(''); setStep(2); }}>
+            onClick={() => {
+              if (!form.managerName.trim() || !form.managerTitle.trim() || !form.company.trim()) {
+                setError('Please fill in the required fields.');
+                return;
+              }
+              if (!isFullPersonName(form.managerName)) {
+                setError("Please enter the manager's first and last name.");
+                return;
+              }
+              if (!looksLikeLinkedin(form.linkedinUrl)) {
+                setError('Enter a valid LinkedIn URL or leave it blank.');
+                return;
+              }
+              setError('');
+              setStep(2);
+            }}>
             Continue →
           </button>
         </div>
@@ -1127,7 +1145,9 @@ export default function App(props) {
 
   const qName = searchName.toLowerCase().trim();
   const qCompany = searchCompany.toLowerCase().trim();
-  const canSearch = Boolean(qName && qCompany);
+  const searchNameHasFullName = isFullPersonName(searchName);
+  const showSearchNameHint = Boolean(searchName.trim() && !searchNameHasFullName);
+  const canSearch = Boolean(qName && qCompany && searchNameHasFullName);
   const matchedManagers = canSearch
     ? Object.entries(managerMap).filter(([, rs]) => {
         const r0 = rs[0];
@@ -1137,7 +1157,12 @@ export default function App(props) {
   const searchTerm = canSearch ? `${searchName.trim()} at ${searchCompany.trim()}` : '';
 
   async function handleSearch() {
-    if (!canSearch) return;
+    if (!qName || !qCompany) return;
+    if (!searchNameHasFullName) {
+      setShowModal(false);
+      setSearchStage(null);
+      return;
+    }
     setSearchStage('loading');
     const response = await fetch('/api/managers', {
       method: 'POST',
@@ -1275,15 +1300,15 @@ export default function App(props) {
               <div className="hero-search-wrap">
                 <Icon name="search" size={28} />
                 <input
-                  className="hero-search-input"
-                  placeholder="Manager's name..."
+                  className="hero-search-input hero-search-name"
+                  placeholder="Manager's first and last name..."
                   value={searchName}
                   onChange={e => setSearchName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearch()}
                 />
                 <span className="hero-search-divider" />
                 <input
-                  className="hero-search-input"
+                  className="hero-search-input hero-search-company"
                   placeholder="Company..."
                   value={searchCompany}
                   onChange={e => setSearchCompany(e.target.value)}
@@ -1291,6 +1316,12 @@ export default function App(props) {
                 />
                 <button className="hero-search-btn" disabled={!canSearch} onClick={handleSearch}>Search</button>
               </div>
+              {showSearchNameHint ? (
+                <div className="hero-search-hint">
+                  <span>!</span>
+                  Enter the manager's first and last name to search.
+                </div>
+              ) : null}
 
               <div className="trending-searches">
                 <span>Trending companies:</span>

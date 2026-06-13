@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
 import { prisma } from "../../../src/lib/prisma";
 import { getRecentReviews } from "../../../src/lib/public-data";
-import { hashValue, normalizeReview, slugify } from "../../../src/lib/reviews";
+import { canonicalManagerNameForSlug, hashValue, normalizeReview, slugify } from "../../../src/lib/reviews";
 import { managerPath } from "../../../src/lib/seo";
 import { auth } from "../../../src/lib/auth";
 
@@ -31,12 +31,13 @@ export async function POST(request: Request) {
     const body = await request.json();
     const review = normalizeReview(body);
     const companySlug = slugify(review.company);
-    const managerSlug = slugify(review.managerName);
+    const canonicalManagerName = canonicalManagerNameForSlug(review.managerName);
+    const managerSlug = slugify(canonicalManagerName);
     const submitterIpHash = hashIp(request);
     const submissionHash = hashValue(
       [
         review.company.toLowerCase(),
-        review.managerName.toLowerCase(),
+        canonicalManagerName.toLowerCase(),
         review.reviewText.toLowerCase(),
       ].join("|"),
     );
