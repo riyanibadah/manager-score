@@ -64,6 +64,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
     : null;
   const unlocked = cookieStore.get("rmm_unlocked")?.value === "true" || Boolean(userUnlock);
   const isAdmin = Boolean(session?.user?.email && adminEmails().has(session.user.email.toLowerCase()));
+  const hasReviews = profile.reviewCount > 0;
   const profileScoreTone = scoreToneClass(profile.averageScore);
   const canonicalUrl = `${siteUrl()}${profile.profilePath}`;
   const reviewHref = `/?review=1&manager=${encodeURIComponent(profile.name)}&company=${encodeURIComponent(profile.company)}`;
@@ -78,14 +79,14 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
       name: profile.company,
     },
     url: canonicalUrl,
-    ...(unlocked && profile.reviewCount > 0
+    ...(unlocked && hasReviews
       ? {
           aggregateRating: {
             "@type": "AggregateRating",
             ratingValue: profile.averageScore.toFixed(1),
             bestRating: "5",
             worstRating: "1",
-            reviewCount: profile.reviewCount,
+          reviewCount: profile.reviewCount,
           },
         }
       : {}),
@@ -160,13 +161,13 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
           )}
         </div>
         <div className="profile-side-actions">
-          <div className={`profile-score ${unlocked && profile.reviewCount > 0 ? profileScoreTone : "profile-score-empty"}`}>
-            {unlocked && profile.reviewCount > 0 ? (
+          <div className={`profile-score ${unlocked && hasReviews ? profileScoreTone : "profile-score-empty"}`}>
+            {unlocked && hasReviews ? (
               <>
                 <span>{profile.averageScore.toFixed(1)}</span>
                 <small>{profile.reviewCount} review{profile.reviewCount === 1 ? "" : "s"}</small>
               </>
-            ) : profile.reviewCount > 0 ? (
+            ) : hasReviews ? (
               <>
                 <span className="profile-score-skeleton" aria-label="Score locked" />
                 <small>{profile.reviewCount} anonymous review{profile.reviewCount === 1 ? "" : "s"}</small>
@@ -181,7 +182,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
         </div>
       </section>
 
-      {profile.reviewCount > 0 && (
+      {hasReviews && (
         <section className="profile-summary">
           <p>
             {profile.reviewCount} {profile.reviewCount === 1 ? "employee has" : "employees have"} anonymously
@@ -194,22 +195,33 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
       )}
 
       <section className="profile-stats">
-        {(unlocked
+        {(hasReviews && unlocked
           ? [
               ["Communication", profile.communication.toFixed(1)],
               ["Support & Growth", profile.supportGrowth.toFixed(1)],
               ["Work-Life Balance", profile.worklife.toFixed(1)],
               ["Would Work Again", `${profile.wouldAgainPct}%`],
             ]
-          : [
+          : !unlocked
+            ? [
               ["Communication", ""],
               ["Support & Growth", ""],
               ["Work-Life Balance", ""],
               ["Would Work Again", ""],
+            ]
+            : [
+              ["Communication", "First review"],
+              ["Support & Growth", "First review"],
+              ["Work-Life Balance", "First review"],
+              ["Would Work Again", "First review"],
             ]).map(([label, value]) => (
-          <div key={label} className={!unlocked ? "profile-stat-locked" : undefined}>
-            {unlocked ? <strong>{value}</strong> : <strong aria-label={`${label} locked`} />}
+          <div
+            key={label}
+            className={!unlocked ? "profile-stat-locked" : !hasReviews ? "profile-stat-empty" : undefined}
+          >
+            {hasReviews && unlocked ? <strong>{value}</strong> : !unlocked ? <strong aria-label={`${label} locked`} /> : <strong>—</strong>}
             <span>{label}</span>
+            {unlocked && !hasReviews && <small>{value}</small>}
           </div>
         ))}
       </section>
@@ -239,15 +251,19 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
             <a className="btn-primary" href={reviewHref}>Write an anonymous review to unlock →</a>
           </div>
         )}
-        {unlocked && profile.reviews.length === 0 && (
-          <div className="profile-empty-state">
-            <p>No one has reviewed {profile.name} yet. Be the first to anonymously share what it&apos;s like to work with them.</p>
+        {unlocked && !hasReviews && (
+          <div className="profile-empty-state profile-first-review-state">
+            <strong>Profile found. No reviews yet.</strong>
+            <p>
+              Be the first to anonymously share what it&apos;s like to work with {profile.name}
+              {profile.company ? ` at ${profile.company}` : ""}.
+            </p>
             <a className="btn-primary" href={reviewHref}>Write the first anonymous review →</a>
           </div>
         )}
-        {!unlocked && profile.reviewCount > 0 && (
+        {!unlocked && (
           <div className="profile-review-list" aria-hidden="true">
-            {Array.from({ length: Math.min(profile.reviewCount, 3) }).map((_, index) => (
+            {Array.from({ length: Math.max(2, Math.min(profile.reviewCount, 3)) }).map((_, index) => (
               <article className="profile-review-card profile-review-card-locked" key={index}>
                 <header>
                   <div>
@@ -265,7 +281,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
             ))}
           </div>
         )}
-        {unlocked && <div className="profile-review-list">
+        {unlocked && hasReviews && <div className="profile-review-list">
           {profile.reviews.map((review) => (
             <article className="profile-review-card" key={review.id}>
               <header>
