@@ -460,7 +460,7 @@ button, input, textarea, select { font: inherit; }
   font-weight: 600;
 }
 .hero-search-name {
-  flex: 1 1 58%;
+  flex: 1 1 29%;
 }
 .hero-search-company {
   flex: 0 1 155px;

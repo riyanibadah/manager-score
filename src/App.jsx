@@ -1071,7 +1071,8 @@ export default function App(props) {
   const [view, setView] = useState('home');
   const [activeKey, setActiveKey] = useState(null);
   const [prefill, setPrefill] = useState(null);
-  const [searchName, setSearchName] = useState('');
+  const [searchFirstName, setSearchFirstName] = useState('');
+  const [searchLastName, setSearchLastName] = useState('');
   const [searchCompany, setSearchCompany] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [searchStage, setSearchStage] = useState(null); // null | 'loading' | 'auth' | 'gate'
@@ -1143,18 +1144,19 @@ export default function App(props) {
     managerMap[k].push(r);
   }
 
-  const qName = searchName.toLowerCase().trim();
+  const searchName = `${searchFirstName.trim()} ${searchLastName.trim()}`.trim();
+  const qName = searchName.toLowerCase();
   const qCompany = searchCompany.toLowerCase().trim();
   const searchNameHasFullName = isFullPersonName(searchName);
   const showSearchNameHint = Boolean(searchName.trim() && !searchNameHasFullName);
-  const canSearch = Boolean(qName && qCompany && searchNameHasFullName);
+  const canSearch = Boolean(searchFirstName.trim() && searchLastName.trim() && qCompany && searchNameHasFullName);
   const matchedManagers = canSearch
     ? Object.entries(managerMap).filter(([, rs]) => {
         const r0 = rs[0];
         return r0.managerName.toLowerCase().includes(qName) && r0.company.toLowerCase().includes(qCompany);
       })
     : [];
-  const searchTerm = canSearch ? `${searchName.trim()} at ${searchCompany.trim()}` : '';
+  const searchTerm = canSearch ? `${searchName} at ${searchCompany.trim()}` : '';
 
   async function handleSearch() {
     if (!qName || !qCompany) return;
@@ -1167,7 +1169,7 @@ export default function App(props) {
     const response = await fetch('/api/managers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ managerName: searchName.trim(), company: searchCompany.trim() }),
+      body: JSON.stringify({ managerName: searchName, company: searchCompany.trim() }),
     }).catch(() => null);
     if (response?.ok) {
       const data = await response.json().catch(() => null);
@@ -1193,7 +1195,7 @@ export default function App(props) {
 
   function handleWriteReviewFromSearch() {
     setShowModal(false);
-    setPrefill(canSearch ? { managerName: searchName.trim(), company: searchCompany.trim() } : null);
+    setPrefill(canSearch ? { managerName: searchName, company: searchCompany.trim() } : null);
     setView('submit');
   }
 
@@ -1227,7 +1229,7 @@ export default function App(props) {
     return (
       <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
         <ProfileNav
-          onLogoClick={() => { setView('home'); setSearchName(''); setSearchCompany(''); }}
+          onLogoClick={() => { setView('home'); setSearchFirstName(''); setSearchLastName(''); setSearchCompany(''); }}
           onBack={() => setView('home')}
           onAddReview={() => {
             const r0 = managerMap[activeKey][0];
@@ -1301,9 +1303,17 @@ export default function App(props) {
                 <Icon name="search" size={28} />
                 <input
                   className="hero-search-input hero-search-name"
-                  placeholder="Manager's first and last name..."
-                  value={searchName}
-                  onChange={e => setSearchName(e.target.value)}
+                  placeholder="First name..."
+                  value={searchFirstName}
+                  onChange={e => setSearchFirstName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                />
+                <span className="hero-search-divider" />
+                <input
+                  className="hero-search-input hero-search-name"
+                  placeholder="Last name..."
+                  value={searchLastName}
+                  onChange={e => setSearchLastName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearch()}
                 />
                 <span className="hero-search-divider" />
@@ -1337,7 +1347,7 @@ export default function App(props) {
                   <BlurredAvatar photo="https://i.pravatar.cc/100?img=33" />
                   <BlurredAvatar photo="https://i.pravatar.cc/100?img=5" />
                 </div>
-                <strong>{(12482 + reviews.length).toLocaleString()} anonymous reviews</strong>
+                <strong>{(Math.floor((1247482 + reviews.length) / 100000) / 10).toFixed(1).replace(/\.0$/, '')} million+ anonymous reviews</strong>
                 <span>and counting</span>
               </div>
             </div>
