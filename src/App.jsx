@@ -1303,7 +1303,7 @@ export default function App(props) {
                 <Icon name="search" size={28} />
                 <input
                   className="hero-search-input hero-search-name"
-                  placeholder="First name..."
+                  placeholder="First name"
                   value={searchFirstName}
                   onChange={e => setSearchFirstName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearch()}
@@ -1311,7 +1311,7 @@ export default function App(props) {
                 <span className="hero-search-divider" />
                 <input
                   className="hero-search-input hero-search-name"
-                  placeholder="Last name..."
+                  placeholder="Last name"
                   value={searchLastName}
                   onChange={e => setSearchLastName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearch()}
@@ -1319,7 +1319,7 @@ export default function App(props) {
                 <span className="hero-search-divider" />
                 <input
                   className="hero-search-input hero-search-company"
-                  placeholder="Company..."
+                  placeholder="Company"
                   value={searchCompany}
                   onChange={e => setSearchCompany(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSearch()}
