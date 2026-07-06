@@ -162,33 +162,54 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
         </div>
         <div className="profile-side-actions">
           <div className={`profile-score ${unlocked && hasReviews ? profileScoreTone : "profile-score-empty"}`}>
-            {unlocked && hasReviews ? (
-              <>
-                <span>{profile.averageScore.toFixed(1)}</span>
-                <small>{profile.reviewCount} review{profile.reviewCount === 1 ? "" : "s"}</small>
-              </>
-            ) : hasReviews ? (
+            {unlocked ? (
+              hasReviews ? (
+                <>
+                  <span>{profile.averageScore.toFixed(1)}</span>
+                  <small>{profile.reviewCount} review{profile.reviewCount === 1 ? "" : "s"}</small>
+                </>
+              ) : (
+                <>
+                  <span>—</span>
+                  <small>No reviews yet</small>
+                </>
+              )
+            ) : (
+              // A visitor who hasn't left a review must never be able to tell an
+              // empty profile from a populated one: always show the locked
+              // skeleton, and only reveal a count when there actually is one.
               <>
                 <span className="profile-score-skeleton" aria-label="Score locked" />
-                <small>{profile.reviewCount} anonymous review{profile.reviewCount === 1 ? "" : "s"}</small>
-              </>
-            ) : (
-              <>
-                <span>—</span>
-                <small>Profile found</small>
+                <small>
+                  {hasReviews
+                    ? `${profile.reviewCount} anonymous review${profile.reviewCount === 1 ? "" : "s"}`
+                    : "Anonymous reviews"}
+                </small>
               </>
             )}
           </div>
         </div>
       </section>
 
-      {hasReviews && (
+      {(hasReviews || !unlocked) && (
         <section className="profile-summary">
           <p>
-            {profile.reviewCount} {profile.reviewCount === 1 ? "employee has" : "employees have"} anonymously
-            reviewed {profile.name}
-            {roleAtCompany ? `, ${roleAtCompany}` : ""}, sharing feedback on communication, support for growth,
-            and work-life balance.
+            {hasReviews ? (
+              <>
+                {profile.reviewCount} {profile.reviewCount === 1 ? "employee has" : "employees have"} anonymously
+                reviewed {profile.name}
+                {roleAtCompany ? `, ${roleAtCompany}` : ""}, sharing feedback on communication, support for
+                growth, and work-life balance.
+              </>
+            ) : (
+              // Empty profile shown to a non-contributor: keep an indexable,
+              // non-empty summary that never states there are no reviews.
+              <>
+                Read anonymous employee feedback on {profile.name}
+                {roleAtCompany ? `, ${roleAtCompany}` : ""}, covering communication, support for growth, and
+                work-life balance.
+              </>
+            )}
             {!unlocked && " Unlock the full ratings and review details by adding your own anonymous review."}
           </p>
         </section>

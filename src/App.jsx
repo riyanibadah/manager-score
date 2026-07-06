@@ -825,7 +825,7 @@ function SubmitForm({ initialValues, onClose, onSubmit }) {
   );
 }
 
-function SearchModal({ searchTerm, resultCount, onClose, onWriteReview, onViewMatches }) {
+function SearchModal({ searchTerm, resultCount, unlocked, onClose, onWriteReview, onViewMatches }) {
   return (
     <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal-card">
@@ -842,12 +842,16 @@ function SearchModal({ searchTerm, resultCount, onClose, onWriteReview, onViewMa
           <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginBottom: 8, lineHeight: 1.3, letterSpacing: '-0.3px' }}>
             {resultCount > 0
               ? `${resultCount} manager match${resultCount !== 1 ? 'es' : ''} for "${searchTerm}"`
-              : `No manager reviews yet for "${searchTerm}"`}
+              : unlocked
+                ? `No manager reviews yet for "${searchTerm}"`
+                : `Reviews for "${searchTerm}"`}
           </h2>
           <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.7, margin: 0 }}>
             {resultCount > 0
               ? 'You can open an existing profile or add a fresh anonymous review.'
-              : 'Be the first to leave a useful anonymous review. Keep it honest, specific, and work-focused.'}
+              : unlocked
+                ? 'Be the first to leave a useful anonymous review. Keep it honest, specific, and work-focused.'
+                : 'Add your own anonymous review to see and leave reviews for this manager.'}
           </p>
         </div>
 
@@ -1282,6 +1286,7 @@ export default function App(props) {
         <SearchModal
           searchTerm={searchTerm}
           resultCount={matchedManagers.length}
+          unlocked={unlocked}
           onClose={() => setShowModal(false)}
           onWriteReview={handleWriteReviewFromSearch}
           onViewMatches={handleViewMatches}
