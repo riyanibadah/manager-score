@@ -547,14 +547,11 @@ button, input, textarea, select { font: inherit; }
   100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
 }
 
-.trending-searches,
-.review-count {
+.trending-searches {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 11px;
-}
-.trending-searches {
   margin-top: 26px;
   color: #536078;
   font-size: 15px;
@@ -568,38 +565,6 @@ button, input, textarea, select { font: inherit; }
   cursor: pointer;
   padding: 0 18px;
   font-weight: 650;
-}
-.review-count {
-  margin-top: 45px;
-  font-size: 17px;
-  color: #536078;
-}
-.review-count strong { color: var(--ink); }
-.mini-avatars { display: flex; padding-left: 5px; }
-.mini-avatars span {
-  position: relative;
-  width: 36px;
-  height: 36px;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  margin-left: -5px;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
-  overflow: hidden;
-  background: #e2e8f0;
-  /* iOS Safari fails to clip a `filter`-ed child to a rounded `overflow:hidden` parent;
-     masking the child directly forces it onto a properly clipped layer. */
-  -webkit-mask-image: -webkit-radial-gradient(circle, #fff 100%, #000 100%);
-  mask-image: radial-gradient(circle, #fff 100%, #000 100%);
-}
-.mini-avatars span i {
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  background-size: cover;
-  background-position: center;
-  filter: blur(4px) saturate(1.05);
-  -webkit-mask-image: -webkit-radial-gradient(circle, #fff 100%, #000 100%);
-  mask-image: radial-gradient(circle, #fff 100%, #000 100%);
 }
 
 .hero-proof {

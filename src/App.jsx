@@ -225,14 +225,6 @@ function AmazonIcon() {
   );
 }
 
-function BlurredAvatar({ photo }) {
-  return (
-    <span className="blurred-avatar">
-      <i style={{ backgroundImage: `url(${photo})` }} />
-    </span>
-  );
-}
-
 function CompanyMark({ company }) {
   const name = company.toLowerCase();
   if (name.includes('google')) return <GoogleIcon />;
@@ -1365,15 +1357,6 @@ export default function App(props) {
                 ))}
               </div>
 
-              <div className="review-count">
-                <div className="mini-avatars">
-                  <BlurredAvatar photo="https://i.pravatar.cc/100?img=12" />
-                  <BlurredAvatar photo="https://i.pravatar.cc/100?img=47" />
-                  <BlurredAvatar photo="https://i.pravatar.cc/100?img=33" />
-                  <BlurredAvatar photo="https://i.pravatar.cc/100?img=5" />
-                </div>
-                <strong>Tons of anonymous reviews</strong>
-              </div>
             </div>
 
             <div className="hero-proof">
