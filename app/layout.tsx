@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
-import Script from "next/script";
 import "../src/App.css";
 
 export const metadata: Metadata = {
@@ -16,11 +15,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <Script
+        <script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7754556104842569"
           crossOrigin="anonymous"
-          strategy="afterInteractive"
         />
       </head>
       <body>
