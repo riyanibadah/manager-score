@@ -1082,7 +1082,22 @@ export default function App(props) {
   const [searchStage, setSearchStage] = useState(null); // null | 'loading' | 'auth' | 'gate'
   const [unlocked, setUnlocked] = useState(initialUnlocked);
   const [pendingUnlock, setPendingUnlock] = useState(false);
+  const [liveSearchers, setLiveSearchers] = useState(() => 15 + Math.floor(Math.random() * 46));
   const allReviews = [...reviews, ...SAMPLE_REVIEWS];
+
+  useEffect(() => {
+    let timeoutId;
+    const tick = () => {
+      setLiveSearchers(prev => {
+        const step = Math.ceil(Math.random() * 3); // 1-3
+        const next = prev + (Math.random() < 0.5 ? -step : step);
+        return Math.min(60, Math.max(15, next));
+      });
+      timeoutId = setTimeout(tick, 1800 + Math.random() * 2400);
+    };
+    timeoutId = setTimeout(tick, 1800 + Math.random() * 2400);
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   useEffect(() => {
     const browserUnlocked = initialUnlocked || localStorage.getItem(UNLOCK_KEY) === 'true';
@@ -1338,6 +1353,11 @@ export default function App(props) {
                 </div>
               ) : null}
 
+              <div className="live-counter">
+                <span className="live-dot" />
+                <strong>{liveSearchers}</strong> people searching their manager right now
+              </div>
+
               <div className="trending-searches">
                 <span>Trending companies:</span>
                 {['Amazon', 'Google', 'TikTok', 'Microsoft', 'Stripe'].map(term => (
@@ -1353,7 +1373,6 @@ export default function App(props) {
                   <BlurredAvatar photo="https://i.pravatar.cc/100?img=5" />
                 </div>
                 <strong>Tons of anonymous reviews</strong>
-                <span>and counting</span>
               </div>
             </div>
 
