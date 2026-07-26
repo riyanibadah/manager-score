@@ -3,7 +3,13 @@ import { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
 import { prisma } from "../../../src/lib/prisma";
 import { getRecentReviews } from "../../../src/lib/public-data";
-import { canonicalManagerNameForSlug, hashValue, normalizeReview, slugify } from "../../../src/lib/reviews";
+import {
+  canonicalManagerNameForSlug,
+  generateDeleteToken,
+  hashValue,
+  normalizeReview,
+  slugify,
+} from "../../../src/lib/reviews";
 import { managerPath } from "../../../src/lib/seo";
 import { auth } from "../../../src/lib/auth";
 
@@ -49,6 +55,9 @@ export async function POST(request: Request) {
 
     if (limitResponse) return limitResponse;
 
+    const deleteToken = generateDeleteToken();
+    const deleteTokenHash = hashValue(deleteToken);
+
     const company = await prisma.company.upsert({
       where: { slug: companySlug },
       update: { name: review.company },
@@ -88,6 +97,7 @@ export async function POST(request: Request) {
         reviewText: review.reviewText,
         submissionHash,
         submitterIpHash,
+        deleteTokenHash,
         tags: {
           create: review.traits.map((trait) => ({
             tag: trait.tag,
@@ -111,6 +121,7 @@ export async function POST(request: Request) {
         status: created.status,
         profilePath: managerPath(company.slug, manager.slug),
         message: "Review submitted anonymously.",
+        deleteToken,
       },
       { status: 201 },
     );
