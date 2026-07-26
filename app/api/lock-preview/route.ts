@@ -15,6 +15,11 @@ export function GET(request: Request) {
     maxAge: 0,
     sameSite: "lax",
   });
+  response.cookies.set("rmm_unlock_tokens", "", {
+    path: "/",
+    maxAge: 0,
+    sameSite: "lax",
+  });
 
   return response;
 }

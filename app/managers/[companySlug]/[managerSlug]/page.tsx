@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cookies, headers } from "next/headers";
-import { getManagerProfile } from "../../../../src/lib/public-data";
+import { getManagerProfile, hasLiveReviewForUser, hasLiveUnlockToken } from "../../../../src/lib/public-data";
 import { managerPath, siteUrl } from "../../../../src/lib/seo";
 import { auth } from "../../../../src/lib/auth";
 import { prisma } from "../../../../src/lib/prisma";
@@ -59,10 +59,25 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
 
   const cookieStore = await cookies();
   const session = await auth.api.getSession({ headers: await headers() }).catch(() => null);
-  const userUnlock = session?.user?.id
+
+  // Legacy grants issued before per-review unlock tracking existed: honored
+  // permanently since neither can be tied back to the review that earned
+  // them, so there's nothing to revoke if that review is later removed.
+  const legacyCookieUnlocked = cookieStore.get("rmm_unlocked")?.value === "true";
+  const legacyUserUnlock = session?.user?.id
     ? await prisma.userUnlock.findUnique({ where: { userId: session.user.id } })
     : null;
-  const unlocked = cookieStore.get("rmm_unlocked")?.value === "true" || Boolean(userUnlock);
+
+  // Unlock granted by a review submitted after that tracking landed: only
+  // counts while the review that earned it is still live, so moderation
+  // removing it revokes access.
+  const unlockTokens = parseUnlockTokens(cookieStore.get("rmm_unlock_tokens")?.value);
+  const [tokenUnlocked, userReviewUnlocked] = await Promise.all([
+    hasLiveUnlockToken(unlockTokens),
+    session?.user?.id ? hasLiveReviewForUser(session.user.id) : Promise.resolve(false),
+  ]);
+
+  const unlocked = legacyCookieUnlocked || Boolean(legacyUserUnlock) || tokenUnlocked || userReviewUnlocked;
   const isAdmin = Boolean(session?.user?.email && adminEmails().has(session.user.email.toLowerCase()));
   const hasReviews = profile.reviewCount > 0;
   const profileScoreTone = scoreToneClass(profile.averageScore);
@@ -346,4 +361,14 @@ function scoreToneClass(score: number) {
   if (score >= 4) return "profile-score-good";
   if (score >= 3) return "profile-score-average";
   return "profile-score-bad";
+}
+
+function parseUnlockTokens(raw: string | undefined) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((token): token is string => typeof token === "string") : [];
+  } catch {
+    return [];
+  }
 }

@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { managerPath } from "./seo";
+import { hashValue } from "./reviews";
 
 export type PublicReview = Awaited<ReturnType<typeof getRecentReviews>>[number];
 
@@ -95,6 +96,37 @@ export async function getManagerProfile(companySlug: string, managerSlug: string
     // route renders a 404 rather than a 5xx. Self-heals once the migration lands.
     console.error("getManagerProfile failed:", error);
     return null;
+  }
+}
+
+export async function hasLiveUnlockToken(tokens: string[]) {
+  if (!tokens.length || !process.env.DATABASE_URL) return false;
+
+  try {
+    const hashes = tokens.map((token) => hashValue(token));
+    const match = await prisma.review.findFirst({
+      where: { unlockTokenHash: { in: hashes }, status: "APPROVED" },
+      select: { id: true },
+    });
+    return Boolean(match);
+  } catch (error) {
+    console.error("hasLiveUnlockToken failed:", error);
+    return false;
+  }
+}
+
+export async function hasLiveReviewForUser(userId: string) {
+  if (!process.env.DATABASE_URL) return false;
+
+  try {
+    const match = await prisma.review.findFirst({
+      where: { userId, status: "APPROVED" },
+      select: { id: true },
+    });
+    return Boolean(match);
+  } catch (error) {
+    console.error("hasLiveReviewForUser failed:", error);
+    return false;
   }
 }
 

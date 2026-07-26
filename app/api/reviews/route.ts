@@ -3,7 +3,13 @@ import { Prisma } from "@prisma/client";
 import { cookies } from "next/headers";
 import { prisma } from "../../../src/lib/prisma";
 import { getRecentReviews } from "../../../src/lib/public-data";
-import { canonicalManagerNameForSlug, hashValue, normalizeReview, slugify } from "../../../src/lib/reviews";
+import {
+  canonicalManagerNameForSlug,
+  generateUnlockToken,
+  hashValue,
+  normalizeReview,
+  slugify,
+} from "../../../src/lib/reviews";
 import { managerPath } from "../../../src/lib/seo";
 import { auth } from "../../../src/lib/auth";
 
@@ -49,6 +55,10 @@ export async function POST(request: Request) {
 
     if (limitResponse) return limitResponse;
 
+    const session = await getRequestSession(request);
+    const unlockToken = generateUnlockToken();
+    const unlockTokenHash = hashValue(unlockToken);
+
     const company = await prisma.company.upsert({
       where: { slug: companySlug },
       update: { name: review.company },
@@ -88,6 +98,8 @@ export async function POST(request: Request) {
         reviewText: review.reviewText,
         submissionHash,
         submitterIpHash,
+        unlockTokenHash,
+        userId: session?.user?.id,
         tags: {
           create: review.traits.map((trait) => ({
             tag: trait.tag,
@@ -96,14 +108,6 @@ export async function POST(request: Request) {
         },
       },
     });
-    const session = await getRequestSession(request);
-    if (session?.user?.id) {
-      await prisma.userUnlock.upsert({
-        where: { userId: session.user.id },
-        update: {},
-        create: { userId: session.user.id },
-      });
-    }
 
     const response = NextResponse.json(
       {
@@ -114,10 +118,11 @@ export async function POST(request: Request) {
       },
       { status: 201 },
     );
-    response.cookies.set("rmm_unlocked", "true", {
+    response.cookies.set("rmm_unlock_tokens", JSON.stringify(await nextUnlockTokens(unlockToken)), {
       path: "/",
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
       maxAge: 60 * 60 * 24 * 365,
     });
     return response;
@@ -149,6 +154,21 @@ async function getRequestSession(request: Request) {
   } catch {
     return null;
   }
+}
+
+const MAX_UNLOCK_TOKENS = 20;
+
+async function nextUnlockTokens(newToken: string) {
+  const cookieStore = await cookies();
+  const raw = cookieStore.get("rmm_unlock_tokens")?.value;
+  let existing: string[] = [];
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) existing = parsed.filter((token) => typeof token === "string");
+    } catch {}
+  }
+  return [...existing, newToken].slice(-MAX_UNLOCK_TOKENS);
 }
 
 async function enforceReviewRateLimit({

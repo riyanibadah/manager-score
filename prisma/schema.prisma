@@ -70,6 +70,9 @@ model Review {
   submissionHash    String       @unique
   submitterIpHash   String?
   verificationEmailHash String?
+  unlockTokenHash   String?      @unique
+  userId            String?
+  user              User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   tags              ReviewTag[]
   reports           ReviewReport[]
   createdAt         DateTime     @default(now())
@@ -77,6 +80,7 @@ model Review {
 
   @@index([status, createdAt])
   @@index([managerId, status])
+  @@index([userId, status])
 }
 
 model ReviewTag {
@@ -109,6 +113,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   unlock        UserUnlock?
+  reviews       Review[]
 
   @@unique([email])
   @@map("user")
