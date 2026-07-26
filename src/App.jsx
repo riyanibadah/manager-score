@@ -1352,7 +1352,7 @@ export default function App(props) {
                   <BlurredAvatar photo="https://i.pravatar.cc/100?img=33" />
                   <BlurredAvatar photo="https://i.pravatar.cc/100?img=5" />
                 </div>
-                <strong>{(Math.floor((1247482 + reviews.length) / 100000) / 10).toFixed(1).replace(/\.0$/, '')} million+ anonymous reviews</strong>
+                <strong>Tons of anonymous reviews</strong>
                 <span>and counting</span>
               </div>
             </div>
