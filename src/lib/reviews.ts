@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import type { TagSentiment } from "@prisma/client";
 
 export type IncomingReview = {
@@ -30,10 +30,6 @@ export function slugify(value: string) {
 export function hashValue(value: string) {
   const salt = process.env.REVIEW_HASH_SALT || "dev-review-salt";
   return createHash("sha256").update(`${salt}:${value}`).digest("hex");
-}
-
-export function generateDeleteToken() {
-  return randomBytes(32).toString("hex");
 }
 
 export function hashRequestIp(request: Request) {

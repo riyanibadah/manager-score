@@ -8,16 +8,6 @@ const PURPLE = '#5b2df5';
 const GOLD = '#ff9f0a';
 const KEY = 'rmm_data_v1';
 const UNLOCK_KEY = 'rmm_unlocked_v1';
-const REVIEW_TOKENS_KEY = 'rmm_review_tokens_v1';
-
-function rememberReviewToken(reviewId, token) {
-  try {
-    const raw = localStorage.getItem(REVIEW_TOKENS_KEY);
-    const tokens = raw ? JSON.parse(raw) : {};
-    tokens[reviewId] = token;
-    localStorage.setItem(REVIEW_TOKENS_KEY, JSON.stringify(tokens));
-  } catch (e) { console.error(e); }
-}
 
 const SAMPLE_REVIEWS = [
   {
@@ -1143,7 +1133,6 @@ export default function App(props) {
     if (response?.ok) {
       const data = await response.json().catch(() => null);
       if (data?.profilePath) profilePath = data.profilePath;
-      if (data?.id && data?.deleteToken) rememberReviewToken(data.id, data.deleteToken);
     }
 
     if (pendingUnlock) {

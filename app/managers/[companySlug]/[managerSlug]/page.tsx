@@ -6,7 +6,6 @@ import { managerPath, siteUrl } from "../../../../src/lib/seo";
 import { auth } from "../../../../src/lib/auth";
 import { prisma } from "../../../../src/lib/prisma";
 import ReportReviewButton from "../../../../src/components/ReportReviewButton";
-import DeleteReviewButton from "../../../../src/components/DeleteReviewButton";
 import { adminEmails } from "../../../../src/lib/admin";
 import { AdminProfileControls, AdminReviewControls } from "../../../../src/components/AdminProfileControls";
 
@@ -324,7 +323,6 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
                   <span>{review.wouldAgain ? "Would work for again" : "Would not work for again"}</span>
                 </span>
                 <ReportReviewButton reviewId={review.id} />
-                <DeleteReviewButton reviewId={review.id} />
                 {isAdmin && <AdminReviewControls reviewId={review.id} />}
               </footer>
             </article>

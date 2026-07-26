@@ -70,7 +70,6 @@ model Review {
   submissionHash    String       @unique
   submitterIpHash   String?
   verificationEmailHash String?
-  deleteTokenHash   String?
   tags              ReviewTag[]
   reports           ReviewReport[]
   createdAt         DateTime     @default(now())

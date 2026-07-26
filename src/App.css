@@ -1579,36 +1579,6 @@ button, input, textarea, select { font: inherit; }
   color: #64748b;
 }
 
-.delete-review-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.delete-review-link {
-  background: none;
-  border: none;
-  padding: 0;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  color: #b91c1c;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.delete-review-link:hover {
-  color: #7f1d1d;
-}
-.delete-review-link:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-.delete-review-error {
-  font-size: 12px;
-  font-weight: 700;
-  color: #b91c1c;
-}
-
 .modal-backdrop {
   position: fixed;
   inset: 0;
