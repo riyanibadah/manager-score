@@ -225,6 +225,26 @@ function AmazonIcon() {
   );
 }
 
+function BankOfAmericaIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+      <path d="M2 4h16l4 8-4 8H2z" fill="#012169" />
+      <path d="M2 4h16l4 8H2z" fill="#E31837" />
+    </svg>
+  );
+}
+
+function TractorSupplyIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+      <circle cx="7" cy="18" r="4" fill="none" stroke="#CC0000" strokeWidth="1.8" />
+      <circle cx="17" cy="19.5" r="2.3" fill="none" stroke="#CC0000" strokeWidth="1.6" />
+      <path d="M4 12h5l2 3h4.5l1.5 3.5" stroke="#CC0000" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 12V7h3l2 5" stroke="#CC0000" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function CompanyMark({ company }) {
   const name = company.toLowerCase();
   if (name.includes('google')) return <GoogleIcon />;
@@ -237,6 +257,8 @@ function CompanyMark({ company }) {
   }
   if (name.includes('apple')) return <AppleIcon />;
   if (name.includes('amazon')) return <AmazonIcon />;
+  if (name.includes('bank of america')) return <BankOfAmericaIcon />;
+  if (name.includes('tractor supply')) return <TractorSupplyIcon />;
   return <span className="company-mark fallback-mark">{company[0]?.toUpperCase()}</span>;
 }
 
