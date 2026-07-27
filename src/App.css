@@ -1563,6 +1563,128 @@ button, input, textarea, select { font: inherit; }
   accent-color: var(--purple);
 }
 
+.share-review-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  color: #475569;
+  cursor: pointer;
+}
+.share-review-link:hover {
+  border-color: rgba(91, 45, 245, 0.35);
+  background: #f7f5ff;
+  color: var(--purple);
+}
+.share-modal {
+  max-width: 380px;
+}
+.share-modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+.share-modal-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0 0 18px;
+}
+.share-targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.share-target {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.share-target:hover {
+  transform: translateY(-1px);
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+.share-target svg {
+  color: #64748b;
+}
+.share-target-message:hover svg {
+  color: #16a34a;
+}
+.share-target-reddit:hover svg {
+  color: #ff4500;
+}
+.share-target-facebook:hover svg {
+  color: #1877f2;
+}
+.share-copy-row {
+  display: flex;
+  gap: 8px;
+}
+.share-copy-input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fafc;
+  font: inherit;
+  font-size: 13px;
+  color: #475569;
+  text-overflow: ellipsis;
+}
+.share-copy-btn {
+  flex: none;
+  padding: 11px 15px;
+  border: none;
+  border-radius: 10px;
+  background: var(--purple);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  color: #fff;
+  cursor: pointer;
+}
+.share-copy-btn:hover {
+  filter: brightness(1.06);
+}
+
+.profile-review-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.profile-review-card {
+  scroll-margin-top: 24px;
+}
+.profile-review-card:target {
+  border-color: rgba(91, 45, 245, 0.45);
+  box-shadow: 0 0 0 3px rgba(91, 45, 245, 0.12), 0 8px 20px rgba(18, 23, 40, 0.06);
+}
+
 .report-review-link {
   background: none;
   border: none;
@@ -1845,6 +1967,10 @@ button, input, textarea, select { font: inherit; }
   .profile-review-card header,
   .profile-review-card footer {
     display: grid;
+  }
+  /* Footer stacks on mobile, so the actions read better left-aligned under the meta. */
+  .profile-review-actions {
+    justify-content: flex-start;
   }
 }
 

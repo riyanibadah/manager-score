@@ -6,6 +6,7 @@ import { managerPath, siteUrl } from "../../../../src/lib/seo";
 import { auth } from "../../../../src/lib/auth";
 import { prisma } from "../../../../src/lib/prisma";
 import ReportReviewButton from "../../../../src/components/ReportReviewButton";
+import ShareReviewButton from "../../../../src/components/ShareReviewButton";
 import { adminEmails } from "../../../../src/lib/admin";
 import { AdminProfileControls, AdminReviewControls } from "../../../../src/components/AdminProfileControls";
 
@@ -319,7 +320,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
         )}
         {unlocked && hasReviews && <div className="profile-review-list">
           {profile.reviews.map((review) => (
-            <article className="profile-review-card" key={review.id}>
+            <article className="profile-review-card" key={review.id} id={`review-${review.id}`}>
               <header>
                 <div>
                   <strong>{review.reviewerRole || "Anonymous employee"}</strong>
@@ -337,8 +338,14 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
                   <span>{new Date(review.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</span>
                   <span>{review.wouldAgain ? "Would work for again" : "Would not work for again"}</span>
                 </span>
-                <ReportReviewButton reviewId={review.id} />
-                {isAdmin && <AdminReviewControls reviewId={review.id} />}
+                <div className="profile-review-actions">
+                  <ShareReviewButton
+                    url={`${canonicalUrl}#review-${review.id}`}
+                    title={`Anonymous review of ${profile.name}${roleAtCompany ? `, ${roleAtCompany}` : ""} on ManagerScore`}
+                  />
+                  <ReportReviewButton reviewId={review.id} />
+                  {isAdmin && <AdminReviewControls reviewId={review.id} />}
+                </div>
               </footer>
             </article>
           ))}
