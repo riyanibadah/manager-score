@@ -220,15 +220,15 @@ export async function sendReplyNotification(notification: {
 }
 
 /**
- * Moderation mail, sent only to the site owner. Unlike subscriber alerts this
- * one keeps the text, so a reply can be triaged straight from the inbox.
+ * Moderation heads-up, sent only to the site owner. Like the subscriber alert
+ * it carries no reply text: the point of the mail is to get someone onto the
+ * thread, and a full copy in the inbox removes any reason to open it.
  */
 export async function sendReplyModerationNotice(reply: {
   replyId: string;
   managerName: string;
   company: string;
   profilePath: string;
-  replyBody: string;
 }) {
   const replyUrl = `${siteUrl()}${reply.profilePath}#reply-${reply.replyId}`;
   const intro = `A new reply was posted on the review of ${reply.managerName} at ${reply.company}.`;
@@ -236,12 +236,11 @@ export async function sendReplyModerationNotice(reply: {
   return sendEmail({
     to: REPORT_NOTIFICATION_EMAIL,
     subject: `[ManagerScore] New reply: ${reply.managerName} at ${reply.company}`,
-    text: [intro, ``, `"${reply.replyBody}"`, ``, `Open it: ${replyUrl}`, ``, `Reply ID: ${reply.replyId}`].join("\n"),
+    text: [intro, ``, `Open it: ${replyUrl}`, ``, `Reply ID: ${reply.replyId}`].join("\n"),
     html: renderEmail({
       preheader: intro,
       heading: "New reply posted",
       intro,
-      quote: reply.replyBody,
       ctaLabel: "Open the reply",
       ctaUrl: replyUrl,
       footnote: `Reply ID: ${reply.replyId}`,

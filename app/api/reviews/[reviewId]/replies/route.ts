@@ -80,7 +80,6 @@ export async function POST(request: Request, { params }: ReplyRouteProps) {
         managerName: review.manager.name,
         company: review.manager.company.name,
         profilePath,
-        replyBody: reply.body,
       }),
     ]);
 
