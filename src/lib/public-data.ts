@@ -42,7 +42,13 @@ export async function getManagerProfile(companySlug: string, managerSlug: string
         reviews: {
           where: { status: "APPROVED" },
           orderBy: { createdAt: "desc" },
-          include: { tags: true },
+          include: {
+            tags: true,
+            replies: {
+              where: { status: "APPROVED" },
+              orderBy: { createdAt: "asc" },
+            },
+          },
         },
       },
     });
@@ -183,6 +189,13 @@ function serializeReview(review: {
     company: { name: string; slug: string };
   };
   tags: Array<{ tag: string; sentiment: string }>;
+  // Only the profile query loads replies; list views (homepage feed) skip them.
+  replies?: Array<{
+    id: string;
+    body: string;
+    authorRole: string | null;
+    createdAt: Date;
+  }>;
 }) {
   const overall = Math.round(average([review.communication, review.worklife, review.recognition]) * 10) / 10;
 
@@ -209,6 +222,12 @@ function serializeReview(review: {
     traits: review.tags.map((tag) => ({
       tag: tag.tag,
       sentiment: tag.sentiment.toLowerCase(),
+    })),
+    replies: (review.replies || []).map((reply) => ({
+      id: reply.id,
+      body: reply.body,
+      authorRole: reply.authorRole,
+      date: reply.createdAt.toISOString(),
     })),
     date: review.createdAt.toISOString(),
   };

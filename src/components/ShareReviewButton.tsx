@@ -119,7 +119,7 @@ export default function ShareReviewButton({ url, title }: ShareReviewButtonProps
       </button>
 
       {open && (
-        <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && close()}>
+        <div className="modal-backdrop share-backdrop" onClick={(e) => e.target === e.currentTarget && close()}>
           <div className="modal-card share-modal" role="dialog" aria-modal="true" aria-label="Share this review">
             <button className="modal-close" onClick={close} aria-label="Close">×</button>
 

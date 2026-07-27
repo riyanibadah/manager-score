@@ -163,3 +163,40 @@ export function AdminReviewControls({ reviewId }: { reviewId: string }) {
     </div>
   );
 }
+
+export function AdminReplyControls({ replyId }: { replyId: string }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function updateReply(method: "PATCH" | "DELETE") {
+    const label = method === "DELETE" ? "delete" : "hide";
+    if (!confirm(`${label[0].toUpperCase()}${label.slice(1)} this reply?`)) return;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/replies/${replyId}`, {
+        method,
+        headers: method === "PATCH" ? { "Content-Type": "application/json" } : undefined,
+        body: method === "PATCH" ? JSON.stringify({ status: "HIDDEN" }) : undefined,
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || `Could not ${label} reply.`);
+      window.location.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Could not ${label} reply.`);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <span className="admin-review-actions admin-reply-actions">
+      <button type="button" onClick={() => updateReply("PATCH")} disabled={busy}>
+        Hide reply
+      </button>
+      <button type="button" className="admin-danger-link" onClick={() => updateReply("DELETE")} disabled={busy}>
+        Delete reply
+      </button>
+      {error ? <span>{error}</span> : null}
+    </span>
+  );
+}

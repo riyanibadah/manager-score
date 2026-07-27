@@ -11,7 +11,16 @@ const REPORT_REASONS = [
   "Other",
 ];
 
-export default function ReportReviewButton({ reviewId }: { reviewId: string }) {
+export default function ReportReviewButton({
+  reviewId,
+  replyId,
+  label = "Report review",
+}: {
+  reviewId: string;
+  /** Set when reporting a reply; the parent reviewId is still sent for context. */
+  replyId?: string;
+  label?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [details, setDetails] = useState("");
@@ -37,7 +46,7 @@ export default function ReportReviewButton({ reviewId }: { reviewId: string }) {
       const res = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewId, reason, details }),
+        body: JSON.stringify({ reviewId, replyId, reason, details }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || "Could not submit report.");
@@ -51,7 +60,7 @@ export default function ReportReviewButton({ reviewId }: { reviewId: string }) {
   return (
     <>
       <button type="button" className="report-review-link" onClick={() => setOpen(true)}>
-        Report review
+        {label}
       </button>
 
       {open && (
@@ -71,7 +80,7 @@ export default function ReportReviewButton({ reviewId }: { reviewId: string }) {
             ) : (
               <>
                 <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
-                  Report this review
+                  {replyId ? "Report this reply" : "Report this review"}
                 </h2>
                 <p style={{ fontSize: 13, color: "#64748b", marginBottom: 16, lineHeight: 1.6 }}>
                   Let us know what's wrong. We'll review it and follow up if needed.

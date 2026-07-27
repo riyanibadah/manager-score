@@ -21,6 +21,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const reviewId = typeof body?.reviewId === "string" ? body.reviewId.trim() : "";
+    const replyId = typeof body?.replyId === "string" && body.replyId.trim() ? body.replyId.trim() : undefined;
     const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
     const details =
       typeof body?.details === "string" && body.details.trim()
@@ -43,6 +44,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Review not found." }, { status: 404 });
     }
 
+    // A reply report must point at a reply that actually belongs to this
+    // review, otherwise the moderation email would describe the wrong thread.
+    const reply = replyId
+      ? await prisma.reviewReply.findFirst({ where: { id: replyId, reviewId } })
+      : null;
+
+    if (replyId && !reply) {
+      return NextResponse.json({ error: "Reply not found." }, { status: 404 });
+    }
+
     const reporterIpHash = hashRequestIp(request);
 
     if (reporterIpHash) {
@@ -59,7 +70,7 @@ export async function POST(request: Request) {
     }
 
     const report = await prisma.reviewReport.create({
-      data: { reviewId, reason, details, reporterIpHash },
+      data: { reviewId, replyId, reason, details, reporterIpHash },
     });
 
     await sendReportNotification({
@@ -69,7 +80,8 @@ export async function POST(request: Request) {
       managerName: review.manager.name,
       company: review.manager.company.name,
       profilePath: managerPath(review.manager.company.slug, review.manager.slug),
-      reviewText: review.reviewText,
+      reviewText: reply ? reply.body : review.reviewText,
+      target: reply ? "reply" : "review",
     });
 
     return NextResponse.json({ message: "Report submitted. Thank you." }, { status: 201 });

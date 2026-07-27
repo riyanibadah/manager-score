@@ -7,6 +7,8 @@ import { auth } from "../../../../src/lib/auth";
 import { prisma } from "../../../../src/lib/prisma";
 import ReportReviewButton from "../../../../src/components/ReportReviewButton";
 import ShareReviewButton from "../../../../src/components/ShareReviewButton";
+import NotifyReviewButton from "../../../../src/components/NotifyReviewButton";
+import ReviewReplies from "../../../../src/components/ReviewReplies";
 import { adminEmails } from "../../../../src/lib/admin";
 import { AdminProfileControls, AdminReviewControls } from "../../../../src/components/AdminProfileControls";
 
@@ -343,10 +345,12 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
                     url={`${canonicalUrl}#review-${review.id}`}
                     title={`Anonymous review of ${profile.name}${roleAtCompany ? `, ${roleAtCompany}` : ""} on ManagerScore`}
                   />
+                  <NotifyReviewButton reviewId={review.id} />
                   <ReportReviewButton reviewId={review.id} />
                   {isAdmin && <AdminReviewControls reviewId={review.id} />}
                 </div>
               </footer>
+              <ReviewReplies reviewId={review.id} replies={review.replies} isAdmin={isAdmin} />
             </article>
           ))}
         </div>}
