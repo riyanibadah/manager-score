@@ -18,7 +18,11 @@ export async function POST(request: Request, { params }: ReplyRouteProps) {
 
   try {
     const { reviewId } = await params;
-    const reply = normalizeReply(await request.json());
+    const payload = await request.json();
+    const reply = normalizeReply(payload);
+    const parentId = typeof payload?.parentId === "string" && payload.parentId.trim()
+      ? payload.parentId.trim()
+      : undefined;
 
     const review = await prisma.review.findUnique({
       where: { id: reviewId },
@@ -29,6 +33,18 @@ export async function POST(request: Request, { params }: ReplyRouteProps) {
       return NextResponse.json({ error: "Review not found." }, { status: 404 });
     }
 
+    // A reply-to-a-reply must attach to a live reply on this same review,
+    // otherwise a thread could be grafted onto an unrelated review.
+    if (parentId) {
+      const parent = await prisma.reviewReply.findFirst({
+        where: { id: parentId, reviewId, status: "APPROVED" },
+        select: { id: true },
+      });
+      if (!parent) {
+        return NextResponse.json({ error: "That reply is no longer available." }, { status: 404 });
+      }
+    }
+
     const submitterIpHash = hashRequestIp(request);
     const limitResponse = await enforceReplyRateLimit({ submitterIpHash, reviewId });
     if (limitResponse) return limitResponse;
@@ -37,16 +53,19 @@ export async function POST(request: Request, { params }: ReplyRouteProps) {
     const created = await prisma.reviewReply.create({
       data: {
         reviewId,
+        parentId,
         body: reply.body,
         authorRole: reply.authorRole,
-        submissionHash: hashValue(`${reviewId}|${reply.body.toLowerCase()}`),
+        submissionHash: hashValue(`${reviewId}|${parentId || ""}|${reply.body.toLowerCase()}`),
         submitterIpHash,
         userId: session?.user?.id,
       },
     });
 
     const profilePath = managerPath(review.manager.company.slug, review.manager.slug);
-    const reviewUrl = `${siteUrl()}${profilePath}#review-${reviewId}`;
+    // Point subscribers straight at the new reply rather than the review, so
+    // the thing the email is about is what they land on.
+    const replyUrl = `${siteUrl()}${profilePath}#reply-${created.id}`;
 
     // Fan out after the reply is persisted so a mail failure can never lose it.
     await Promise.all([
@@ -54,7 +73,7 @@ export async function POST(request: Request, { params }: ReplyRouteProps) {
         reviewId,
         managerName: review.manager.name,
         company: review.manager.company.name,
-        reviewUrl,
+        replyUrl,
       }),
       sendReplyModerationNotice({
         replyId: created.id,
@@ -69,8 +88,11 @@ export async function POST(request: Request, { params }: ReplyRouteProps) {
       {
         reply: {
           id: created.id,
+          parentId: created.parentId,
           body: created.body,
           authorRole: created.authorRole,
+          upvotes: created.upvotes,
+          downvotes: created.downvotes,
           date: created.createdAt.toISOString(),
         },
       },
@@ -92,7 +114,7 @@ async function notifySubscribers(notification: {
   reviewId: string;
   managerName: string;
   company: string;
-  reviewUrl: string;
+  replyUrl: string;
 }) {
   const subscribers = await prisma.reviewSubscription.findMany({
     where: { reviewId: notification.reviewId, confirmedAt: { not: null } },
@@ -106,7 +128,7 @@ async function notifySubscribers(notification: {
         unsubscribeToken: subscriber.unsubscribeToken,
         managerName: notification.managerName,
         company: notification.company,
-        reviewUrl: notification.reviewUrl,
+        replyUrl: notification.replyUrl,
       }),
     ),
   );
@@ -131,21 +153,23 @@ async function enforceReplyRateLimit({
     }),
   ]);
 
-  if (sameReviewDayCount >= 3) {
+  // Generous enough for a genuine back-and-forth in one thread; the caps only
+  // exist to stop a script flooding a profile.
+  if (sameReviewDayCount >= 25) {
     return NextResponse.json(
-      { error: "You've replied to this review a few times today. Please come back tomorrow." },
+      { error: "You've replied to this review a lot today. Please come back tomorrow." },
       { status: 429 },
     );
   }
 
-  if (hourCount >= 5) {
+  if (hourCount >= 20) {
     return NextResponse.json(
       { error: "Too many replies posted recently. Please try again later." },
       { status: 429 },
     );
   }
 
-  if (dayCount >= 20) {
+  if (dayCount >= 60) {
     return NextResponse.json(
       { error: "Daily reply limit reached. Please try again tomorrow." },
       { status: 429 },

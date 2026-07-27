@@ -56,6 +56,7 @@ export function renderEmail({
   preheader,
   heading,
   intro,
+  quote,
   ctaLabel,
   ctaUrl,
   footnote,
@@ -65,6 +66,8 @@ export function renderEmail({
   preheader: string;
   heading: string;
   intro: string;
+  /** Verbatim content. Moderation mail only — never in subscriber alerts. */
+  quote?: string;
   ctaLabel: string;
   ctaUrl: string;
   footnote?: string;
@@ -99,6 +102,15 @@ export function renderEmail({
             <p style="margin:0;font-size:15px;line-height:1.65;color:#58647a;">${escapeHtml(intro)}</p>
           </td>
         </tr>
+        ${
+          quote
+            ? `<tr>
+          <td style="padding:18px 32px 0;">
+            <div style="padding:14px 16px;border-left:3px solid #e8ebf3;background-color:#f8fafc;border-radius:0 8px 8px 0;font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#334155;white-space:pre-line;">${escapeHtml(quote)}</div>
+          </td>
+        </tr>`
+            : ""
+        }
         <tr>
           <td style="padding:26px 32px 0;">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0">
@@ -180,10 +192,10 @@ export async function sendReplyNotification(notification: {
   unsubscribeToken: string;
   managerName: string;
   company: string;
-  reviewUrl: string;
+  replyUrl: string;
 }) {
   const unsubscribeUrl = `${siteUrl()}/api/notifications/unsubscribe?token=${encodeURIComponent(notification.unsubscribeToken)}`;
-  const intro = `Someone replied to a review you're following of ${notification.managerName} at ${notification.company}. Open the review to read it.`;
+  const intro = `Someone replied to a review you're following of ${notification.managerName} at ${notification.company}. Open it to read the reply in the thread.`;
 
   return sendEmail({
     to: notification.email,
@@ -191,7 +203,7 @@ export async function sendReplyNotification(notification: {
     text: [
       intro,
       ``,
-      `Read the reply: ${notification.reviewUrl}`,
+      `Read the reply: ${notification.replyUrl}`,
       ``,
       `Stop receiving alerts for this review: ${unsubscribeUrl}`,
     ].join("\n"),
@@ -200,13 +212,17 @@ export async function sendReplyNotification(notification: {
       heading: "Someone replied",
       intro,
       ctaLabel: "Read the reply",
-      ctaUrl: notification.reviewUrl,
+      ctaUrl: notification.replyUrl,
       footerLinkUrl: unsubscribeUrl,
       footerLinkLabel: "Unsubscribe from this review",
     }),
   });
 }
 
+/**
+ * Moderation mail, sent only to the site owner. Unlike subscriber alerts this
+ * one keeps the text, so a reply can be triaged straight from the inbox.
+ */
 export async function sendReplyModerationNotice(reply: {
   replyId: string;
   managerName: string;
@@ -214,20 +230,22 @@ export async function sendReplyModerationNotice(reply: {
   profilePath: string;
   replyBody: string;
 }) {
+  const replyUrl = `${siteUrl()}${reply.profilePath}#reply-${reply.replyId}`;
+  const intro = `A new reply was posted on the review of ${reply.managerName} at ${reply.company}.`;
+
   return sendEmail({
     to: REPORT_NOTIFICATION_EMAIL,
     subject: `[ManagerScore] New reply: ${reply.managerName} at ${reply.company}`,
-    text: [
-      `A new reply was posted on ManagerScore.`,
-      ``,
-      `Manager: ${reply.managerName} (${reply.company})`,
-      `Profile: ${siteUrl()}${reply.profilePath}`,
-      ``,
-      `Reply text:`,
-      `"${reply.replyBody}"`,
-      ``,
-      `Reply ID: ${reply.replyId}`,
-    ].join("\n"),
+    text: [intro, ``, `"${reply.replyBody}"`, ``, `Open it: ${replyUrl}`, ``, `Reply ID: ${reply.replyId}`].join("\n"),
+    html: renderEmail({
+      preheader: intro,
+      heading: "New reply posted",
+      intro,
+      quote: reply.replyBody,
+      ctaLabel: "Open the reply",
+      ctaUrl: replyUrl,
+      footnote: `Reply ID: ${reply.replyId}`,
+    }),
   });
 }
 
@@ -243,6 +261,9 @@ export async function sendReportNotification(report: {
 }) {
   const url = `${siteUrl()}${report.profilePath}`;
   const target = report.target === "reply" ? "reply" : "review";
+  const intro = `A ${target} on ${report.managerName} at ${report.company} was reported for: ${report.reason}${
+    report.details ? ` — "${report.details}"` : ""
+  }`;
 
   return sendEmail({
     to: REPORT_NOTIFICATION_EMAIL,
@@ -262,5 +283,14 @@ export async function sendReportNotification(report: {
     ]
       .filter(Boolean)
       .join("\n"),
+    html: renderEmail({
+      preheader: `${target} reported: ${report.reason}`,
+      heading: `Reported ${target}`,
+      intro,
+      quote: report.reviewText,
+      ctaLabel: "Open the profile",
+      ctaUrl: url,
+      footnote: `Report ID: ${report.reportId}`,
+    }),
   });
 }

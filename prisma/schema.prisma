@@ -73,10 +73,15 @@ model Review {
   unlockTokenHash       String?              @unique
   userId                String?
   user                  User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // Denormalized tallies so rendering a profile never has to aggregate the
+  // vote table; ReviewVote rows remain the source of truth for who voted.
+  upvotes               Int                  @default(0)
+  downvotes             Int                  @default(0)
   tags                  ReviewTag[]
   reports               ReviewReport[]
   replies               ReviewReply[]
   subscriptions         ReviewSubscription[]
+  votes                 ReviewVote[]
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
 
@@ -89,19 +94,52 @@ model ReviewReply {
   id              String         @id @default(cuid())
   reviewId        String
   review          Review         @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  // Null for a top-level reply on the review; set when replying to another
+  // reply. Deleting a parent takes its whole subthread with it.
+  parentId        String?
+  parent          ReviewReply?   @relation("ReplyThread", fields: [parentId], references: [id], onDelete: Cascade)
+  children        ReviewReply[]  @relation("ReplyThread")
   body            String
   authorRole      String?
   status          ReviewStatus   @default(APPROVED)
-  submissionHash  String         @unique
+  // Not unique: short replies legitimately repeat ("Agreed", "Same here"), so
+  // this is only a signal for spotting spam runs, never a submission block.
+  submissionHash  String
   submitterIpHash String?
   userId          String?
   user            User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
   reports         ReviewReport[]
+  upvotes         Int            @default(0)
+  downvotes       Int            @default(0)
+  votes           ReviewVote[]
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
   @@index([reviewId, status])
   @@index([status, createdAt])
+  @@index([parentId])
+  @@index([submissionHash])
+}
+
+model ReviewVote {
+  id          String       @id @default(cuid())
+  // Exactly one of these is set: a vote targets a review or a reply.
+  reviewId    String?
+  review      Review?      @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  replyId     String?
+  reply       ReviewReply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  // Hash of the signed-in user id, or of the anonymous voter cookie. Postgres
+  // treats NULLs as distinct in unique indexes, so the pair below constrains
+  // review votes and reply votes independently without a composite target.
+  voterKey    String
+  value       Int
+  voterIpHash String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([reviewId, voterKey])
+  @@unique([replyId, voterKey])
+  @@index([voterKey])
 }
 
 model ReviewSubscription {

@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 
-export default function NotifyReviewButton({ reviewId }: { reviewId: string }) {
+export default function NotifyReviewButton({
+  reviewId,
+  sessionEmail,
+}: {
+  reviewId: string;
+  /** Set when signed in — that address is already provider-verified, so the
+   *  confirmation round trip is skipped and alerts start immediately. */
+  sessionEmail?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "done">("idle");
@@ -27,7 +35,7 @@ export default function NotifyReviewButton({ reviewId }: { reviewId: string }) {
   }
 
   async function submit() {
-    if (!email.trim()) {
+    if (!sessionEmail && !email.trim()) {
       setError("Enter your email address.");
       return;
     }
@@ -38,7 +46,9 @@ export default function NotifyReviewButton({ reviewId }: { reviewId: string }) {
       const res = await fetch(`/api/reviews/${reviewId}/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        // Signed in: the server reads the address off the session and ignores
+        // anything sent here, so none is sent.
+        body: JSON.stringify(sessionEmail ? {} : { email: email.trim() }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || "Could not set up notifications.");
@@ -73,7 +83,7 @@ export default function NotifyReviewButton({ reviewId }: { reviewId: string }) {
 
             {status === "done" ? (
               <>
-                <h2 className="notify-modal-title">One more step</h2>
+                <h2 className="notify-modal-title">{sessionEmail ? "You're all set" : "One more step"}</h2>
                 <p className="notify-modal-subtitle">{message}</p>
               </>
             ) : (
@@ -84,18 +94,25 @@ export default function NotifyReviewButton({ reviewId }: { reviewId: string }) {
                   shown on the site and never linked to a review.
                 </p>
 
-                <input
-                  className="field-input"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && submit()}
-                  aria-label="Email address"
-                  autoFocus
-                />
+                {sessionEmail ? (
+                  <div className="notify-signed-in">
+                    <span>Sending alerts to</span>
+                    <strong>{sessionEmail}</strong>
+                  </div>
+                ) : (
+                  <input
+                    className="field-input"
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && submit()}
+                    aria-label="Email address"
+                    autoFocus
+                  />
+                )}
 
                 {error && <div className="notify-error">{error}</div>}
 
@@ -104,12 +121,13 @@ export default function NotifyReviewButton({ reviewId }: { reviewId: string }) {
                   onClick={submit}
                   disabled={status === "submitting"}
                 >
-                  {status === "submitting" ? "Sending…" : "Notify me of replies"}
+                  {status === "submitting" ? "Setting up…" : "Notify me of replies"}
                 </button>
 
                 <p className="notify-fineprint">
-                  You&apos;ll get a confirmation email first — alerts only start once you click the
-                  link in it. Unsubscribe from any alert in one click.
+                  {sessionEmail
+                    ? "Alerts start right away — your email is already verified through your account. Unsubscribe from any alert in one click."
+                    : "You'll get a confirmation email first — alerts only start once you click the link in it. Unsubscribe from any alert in one click."}
                 </p>
               </>
             )}

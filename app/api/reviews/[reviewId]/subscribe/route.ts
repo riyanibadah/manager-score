@@ -4,6 +4,7 @@ import { hashRequestIp } from "../../../../../src/lib/reviews";
 import { generateNotificationToken, normalizeEmail } from "../../../../../src/lib/replies";
 import { sendSubscriptionConfirmation } from "../../../../../src/lib/notify";
 import { managerPath, siteUrl } from "../../../../../src/lib/seo";
+import { auth } from "../../../../../src/lib/auth";
 
 type SubscribeRouteProps = {
   params: Promise<{ reviewId: string }>;
@@ -22,8 +23,15 @@ export async function POST(request: Request, { params }: SubscribeRouteProps) {
 
   try {
     const { reviewId } = await params;
-    const body = await request.json();
-    const email = normalizeEmail(body?.email);
+    const body = await request.json().catch(() => ({}));
+
+    // A signed-in user's address came from Google, so it's already proven to
+    // be theirs — asking them to confirm it by email again is pure friction.
+    // Only an address typed in by an anonymous visitor needs the opt-in round
+    // trip, since anyone can type anyone else's address.
+    const session = await auth.api.getSession({ headers: request.headers }).catch(() => null);
+    const sessionEmail = normalizeEmail(session?.user?.email);
+    const email = sessionEmail || normalizeEmail(body?.email);
 
     if (!email) {
       return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
@@ -39,15 +47,44 @@ export async function POST(request: Request, { params }: SubscribeRouteProps) {
     }
 
     const subscriberIpHash = hashRequestIp(request);
-    const limitResponse = await enforceSubscribeRateLimit(subscriberIpHash);
-    if (limitResponse) return limitResponse;
+
+    // The cap guards against someone signing up addresses that aren't theirs,
+    // which a signed-in user can't do — they only ever get their own. Applying
+    // it to them would just cut off anyone following a handful of reviews.
+    if (!sessionEmail) {
+      const limitResponse = await enforceSubscribeRateLimit(subscriberIpHash);
+      if (limitResponse) return limitResponse;
+    }
 
     const existing = await prisma.reviewSubscription.findUnique({
       where: { reviewId_email: { reviewId, email } },
     });
 
     if (existing?.confirmedAt) {
-      return NextResponse.json(GENERIC_RESULT, { status: 200 });
+      return NextResponse.json(
+        sessionEmail ? { message: `You're already getting reply alerts at ${email}.` } : GENERIC_RESULT,
+        { status: 200 },
+      );
+    }
+
+    if (sessionEmail) {
+      await prisma.reviewSubscription.upsert({
+        where: { reviewId_email: { reviewId, email } },
+        update: { confirmedAt: new Date() },
+        create: {
+          reviewId,
+          email,
+          confirmToken: generateNotificationToken(),
+          unsubscribeToken: generateNotificationToken(),
+          subscriberIpHash,
+          confirmedAt: new Date(),
+        },
+      });
+
+      return NextResponse.json(
+        { message: `Done — we'll email ${email} whenever someone replies.`, confirmed: true },
+        { status: 201 },
+      );
     }
 
     // Re-issue the token on every attempt so a stale or lost confirmation link

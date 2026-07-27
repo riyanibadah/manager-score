@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cookies, headers } from "next/headers";
-import { getManagerProfile, hasLiveReviewForUser, hasLiveUnlockToken } from "../../../../src/lib/public-data";
+import {
+  getManagerProfile,
+  getVoterVotes,
+  hasLiveReviewForUser,
+  hasLiveUnlockToken,
+} from "../../../../src/lib/public-data";
+import { VOTER_COOKIE, voterKeyFor } from "../../../../src/lib/votes";
 import { managerPath, siteUrl } from "../../../../src/lib/seo";
 import { auth } from "../../../../src/lib/auth";
 import { prisma } from "../../../../src/lib/prisma";
 import ReportReviewButton from "../../../../src/components/ReportReviewButton";
 import ShareReviewButton from "../../../../src/components/ShareReviewButton";
+import VoteButtons from "../../../../src/components/VoteButtons";
 import NotifyReviewButton from "../../../../src/components/NotifyReviewButton";
 import ReviewReplies from "../../../../src/components/ReviewReplies";
 import { adminEmails } from "../../../../src/lib/admin";
@@ -82,6 +89,21 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
 
   const unlocked = legacyCookieUnlocked || Boolean(legacyUserUnlock) || tokenUnlocked || userReviewUnlocked;
   const isAdmin = Boolean(session?.user?.email && adminEmails().has(session.user.email.toLowerCase()));
+  // The cookie is issued by the vote endpoint, so a first-time visitor simply
+  // has no votes to pre-select here. Locked profiles render no vote controls,
+  // so there's nothing to look up either.
+  const myVotes = unlocked
+    ? await getVoterVotes(
+        voterKeyFor({
+          userId: session?.user?.id,
+          voterToken: cookieStore.get(VOTER_COOKIE)?.value,
+        }),
+        {
+          reviewIds: profile.reviews.map((review) => review.id),
+          replyIds: profile.reviews.flatMap((review) => review.replies.map((reply) => reply.id)),
+        },
+      )
+    : {};
   const hasReviews = profile.reviewCount > 0;
   const profileScoreTone = scoreToneClass(profile.averageScore);
   const canonicalUrl = `${siteUrl()}${profile.profilePath}`;
@@ -341,16 +363,27 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
                   <span>{review.wouldAgain ? "Would work for again" : "Would not work for again"}</span>
                 </span>
                 <div className="profile-review-actions">
+                  <VoteButtons
+                    target={{ reviewId: review.id }}
+                    upvotes={review.upvotes}
+                    downvotes={review.downvotes}
+                    myVote={myVotes[review.id] || 0}
+                  />
                   <ShareReviewButton
                     url={`${canonicalUrl}#review-${review.id}`}
                     title={`Anonymous review of ${profile.name}${roleAtCompany ? `, ${roleAtCompany}` : ""} on ManagerScore`}
                   />
-                  <NotifyReviewButton reviewId={review.id} />
+                  <NotifyReviewButton reviewId={review.id} sessionEmail={session?.user?.email} />
                   <ReportReviewButton reviewId={review.id} />
                   {isAdmin && <AdminReviewControls reviewId={review.id} />}
                 </div>
               </footer>
-              <ReviewReplies reviewId={review.id} replies={review.replies} isAdmin={isAdmin} />
+              <ReviewReplies
+                reviewId={review.id}
+                replies={review.replies}
+                isAdmin={isAdmin}
+                myVotes={myVotes}
+              />
             </article>
           ))}
         </div>}

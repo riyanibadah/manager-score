@@ -105,6 +105,41 @@ export async function getManagerProfile(companySlug: string, managerSlug: string
   }
 }
 
+/**
+ * The current voter's own votes across a profile, so their up/down arrows can
+ * render already-selected. One query for the whole page rather than per item.
+ */
+export async function getVoterVotes(
+  voterKey: string | undefined,
+  { reviewIds, replyIds }: { reviewIds: string[]; replyIds: string[] },
+) {
+  const empty = {} as Record<string, number>;
+  if (!voterKey || !process.env.DATABASE_URL) return empty;
+  if (!reviewIds.length && !replyIds.length) return empty;
+
+  try {
+    // Scoped to what this page actually renders — a prolific voter's full
+    // history could otherwise be thousands of rows for no benefit.
+    const votes = await prisma.reviewVote.findMany({
+      where: {
+        voterKey,
+        OR: [{ reviewId: { in: reviewIds } }, { replyId: { in: replyIds } }],
+      },
+      select: { reviewId: true, replyId: true, value: true },
+    });
+
+    const map: Record<string, number> = {};
+    for (const vote of votes) {
+      const id = vote.reviewId || vote.replyId;
+      if (id) map[id] = vote.value;
+    }
+    return map;
+  } catch (error) {
+    console.error("getVoterVotes failed:", error);
+    return empty;
+  }
+}
+
 export async function hasLiveUnlockToken(tokens: string[]) {
   if (!tokens.length || !process.env.DATABASE_URL) return false;
 
@@ -188,12 +223,17 @@ function serializeReview(review: {
     linkedinUrl: string | null;
     company: { name: string; slug: string };
   };
+  upvotes: number;
+  downvotes: number;
   tags: Array<{ tag: string; sentiment: string }>;
   // Only the profile query loads replies; list views (homepage feed) skip them.
   replies?: Array<{
     id: string;
+    parentId: string | null;
     body: string;
     authorRole: string | null;
+    upvotes: number;
+    downvotes: number;
     createdAt: Date;
   }>;
 }) {
@@ -223,10 +263,15 @@ function serializeReview(review: {
       tag: tag.tag,
       sentiment: tag.sentiment.toLowerCase(),
     })),
+    upvotes: review.upvotes,
+    downvotes: review.downvotes,
     replies: (review.replies || []).map((reply) => ({
       id: reply.id,
+      parentId: reply.parentId,
       body: reply.body,
       authorRole: reply.authorRole,
+      upvotes: reply.upvotes,
+      downvotes: reply.downvotes,
       date: reply.createdAt.toISOString(),
     })),
     date: review.createdAt.toISOString(),

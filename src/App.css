@@ -1728,6 +1728,67 @@ button, input, textarea, select { font: inherit; }
   }
 }
 
+.vote-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+}
+.vote-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.vote-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+.vote-btn-up-active,
+.vote-btn-up-active:hover {
+  background: #dcfce7;
+  color: #059669;
+}
+.vote-btn-down-active,
+.vote-btn-down-active:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.vote-score {
+  min-width: 22px;
+  padding: 0 2px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.vote-score-up {
+  color: #059669;
+}
+.vote-score-down {
+  color: #b91c1c;
+}
+.vote-group-small .vote-btn {
+  width: 22px;
+  height: 22px;
+}
+.vote-group-small .vote-score {
+  min-width: 18px;
+  font-size: 12px;
+}
+
 .notify-review-link {
   display: inline-flex;
   align-items: center;
@@ -1759,6 +1820,29 @@ button, input, textarea, select { font: inherit; }
   color: #64748b;
   line-height: 1.6;
   margin: 0 0 16px;
+}
+.notify-signed-in {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.notify-signed-in span {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.notify-signed-in strong {
+  color: #334155;
+  font-size: 14px;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .notify-error {
   margin-top: 10px;
@@ -1833,6 +1917,21 @@ button, input, textarea, select { font: inherit; }
   align-items: center;
   gap: 12px;
   margin-top: 8px;
+  flex-wrap: wrap;
+}
+.reply-actions .reply-open {
+  font-size: 12px;
+}
+.reply-children {
+  margin-top: 10px;
+  padding-left: 14px;
+}
+/* Deep threads stop indenting so they don't crush against the right edge. */
+.reply-children-flat {
+  padding-left: 0;
+}
+.reply-item .reply-form {
+  margin-top: 10px;
 }
 .reply-open {
   background: none;
