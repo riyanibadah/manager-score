@@ -23,11 +23,13 @@ export default function CompanyLogo({ name, slug, size = 96, className }: Compan
         // Decorative here: the company name is always rendered as text beside
         // it, so announcing it twice just adds noise for screen readers.
         alt=""
-        // Height-constrained with width free, rather than forced square. Some
-        // brands (Deloitte, Salesforce) ship a wide wordmark rather than a
-        // compact glyph, and squaring a 5:1 wordmark renders it unreadable.
-        // Square glyphs are unaffected — they still come out size x size.
-        style={{ height: size, width: "auto", maxWidth: size * 3 }}
+        // Square, matching the initials tile and every other mark. Logos are
+        // expected to be square glyphs — crop a brand's wordmark down to its
+        // monogram before adding it, the way deloitte.svg was built — and
+        // object-fit letterboxes anything wider instead of distorting it.
+        width={size}
+        height={size}
+        style={{ width: size, height: size }}
         loading="lazy"
         decoding="async"
       />
