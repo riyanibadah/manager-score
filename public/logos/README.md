@@ -18,6 +18,15 @@ press or brand kit), or a maintained set like [Simple Icons][si], which is
 where `doordash.svg` came from. Don't redraw a logo by hand — a near-miss
 version of a company's mark is worse than the initials fallback.
 
+`deloitte.svg` came from Wikimedia Commons instead ([Logo of Deloitte.svg][dl]),
+which carries it as public domain — the mark is a wordmark below the threshold
+of originality — with the usual `trademarked` flag. Simple Icons has no Deloitte
+entry.
+
+Wide wordmarks like that one are fine: logos are rendered height-constrained
+with the width free, so a 5:1 asset stays readable instead of being squashed
+into a square.
+
 Simple Icons releases the SVG files under CC0, but that covers the files, not
 the marks: each logo remains the trademark of its owner and its use is still
 governed by that company's brand guidelines. Displaying a logo to identify the
@@ -26,3 +35,4 @@ a stronger association than an initials tile — worth a look from counsel befor
 this scales to many companies.
 
 [si]: https://simpleicons.org
+[dl]: https://commons.wikimedia.org/wiki/File:Logo_of_Deloitte.svg

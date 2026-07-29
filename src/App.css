@@ -2498,6 +2498,12 @@ button, input, textarea, select { font: inherit; }
   border-radius: 10px;
 }
 .company-mark-logo {
+  /* Overrides the square .company-mark box: a wide wordmark squeezed into
+     18x18 is unreadable, so pin the height and let the width follow the
+     asset's own aspect ratio. Square glyphs still land at 18x18. */
+  width: auto;
+  height: 18px;
+  max-width: 84px;
   object-fit: contain;
   border-radius: 3px;
 }

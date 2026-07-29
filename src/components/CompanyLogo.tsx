@@ -23,9 +23,11 @@ export default function CompanyLogo({ name, slug, size = 96, className }: Compan
         // Decorative here: the company name is always rendered as text beside
         // it, so announcing it twice just adds noise for screen readers.
         alt=""
-        width={size}
-        height={size}
-        style={{ width: size, height: size }}
+        // Height-constrained with width free, rather than forced square. Some
+        // brands (Deloitte, Salesforce) ship a wide wordmark rather than a
+        // compact glyph, and squaring a 5:1 wordmark renders it unreadable.
+        // Square glyphs are unaffected — they still come out size x size.
+        style={{ height: size, width: "auto", maxWidth: size * 3 }}
         loading="lazy"
         decoding="async"
       />
