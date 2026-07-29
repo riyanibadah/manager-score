@@ -258,8 +258,34 @@ function WellsFargoIcon() {
   );
 }
 
+/**
+ * Logo from public/logos/<slug>.svg, falling back to the initial tile when no
+ * file has been added. There's no manifest to keep in sync — the browser's own
+ * 404 is the check, so dropping a file in is the entire install step.
+ */
+function CompanyFileMark({ company }) {
+  const [failed, setFailed] = useState(false);
+  const slug = clientSlugify(company);
+
+  if (!slug || failed) {
+    return <span className="company-mark fallback-mark">{company[0]?.toUpperCase()}</span>;
+  }
+
+  return (
+    <img
+      className="company-mark company-mark-logo"
+      src={`/logos/${slug}.svg`}
+      // Decorative: the company name is rendered as text right beside it.
+      alt=""
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 function CompanyMark({ company }) {
   const name = company.toLowerCase();
+  // Hand-built marks stay ahead of the file lookup so these render identically
+  // to before; everything else now gets a real logo instead of a bare letter.
   if (name.includes('google')) return <GoogleIcon />;
   if (name.includes('microsoft')) {
     return (
@@ -273,7 +299,7 @@ function CompanyMark({ company }) {
   if (name.includes('bank of america')) return <BankOfAmericaIcon />;
   if (name.includes('tractor supply')) return <TractorSupplyIcon />;
   if (name.includes('wells fargo')) return <WellsFargoIcon />;
-  return <span className="company-mark fallback-mark">{company[0]?.toUpperCase()}</span>;
+  return <CompanyFileMark company={company} />;
 }
 
 function Icon({ name, size = 22 }) {

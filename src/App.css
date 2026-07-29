@@ -2497,3 +2497,7 @@ button, input, textarea, select { font: inherit; }
   margin-bottom: 4px;
   border-radius: 10px;
 }
+.company-mark-logo {
+  object-fit: contain;
+  border-radius: 3px;
+}
