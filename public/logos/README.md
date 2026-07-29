@@ -14,5 +14,15 @@ Square assets with transparent padding look best — they're rendered at 80px on
 the company page and 40px in the directory grid.
 
 A note on sourcing: use the company's own official brand asset (most publish a
-press or brand kit). Don't redraw a logo by hand — a near-miss version of a
-company's mark is worse than the initials fallback.
+press or brand kit), or a maintained set like [Simple Icons][si], which is
+where `doordash.svg` came from. Don't redraw a logo by hand — a near-miss
+version of a company's mark is worse than the initials fallback.
+
+Simple Icons releases the SVG files under CC0, but that covers the files, not
+the marks: each logo remains the trademark of its owner and its use is still
+governed by that company's brand guidelines. Displaying a logo to identify the
+company whose managers are being reviewed is ordinary nominative use, but it is
+a stronger association than an initials tile — worth a look from counsel before
+this scales to many companies.
+
+[si]: https://simpleicons.org
