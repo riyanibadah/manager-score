@@ -12,10 +12,15 @@ const EXTENSIONS = ["svg", "png", "webp"] as const;
 
 // Resolved once per slug per process: these pages are revalidated hourly, so
 // re-stat-ing the filesystem on every render buys nothing.
+//
+// Disabled in development, where a miss would otherwise be cached for the life
+// of the dev server — dropping a logo in and seeing the initials tile persist
+// until restart reads exactly like the feature is broken.
 const cache = new Map<string, string | null>();
+const useCache = process.env.NODE_ENV === "production";
 
 export function companyLogoSrc(companySlug: string): string | null {
-  const cached = cache.get(companySlug);
+  const cached = useCache ? cache.get(companySlug) : undefined;
   if (cached !== undefined) return cached;
 
   // Slugs come from the database and reach the filesystem here, so anything
@@ -27,7 +32,7 @@ export function companyLogoSrc(companySlug: string): string | null {
     : undefined;
 
   const src = resolved ? `/logos/${resolved}` : null;
-  cache.set(companySlug, src);
+  if (useCache) cache.set(companySlug, src);
   return src;
 }
 
