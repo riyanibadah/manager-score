@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { managerPath } from "./seo";
+import { companyPath, managerPath } from "./seo";
 import { hashValue } from "./reviews";
 
 export type PublicReview = Awaited<ReturnType<typeof getRecentReviews>>[number];
@@ -168,6 +168,91 @@ export async function hasLiveReviewForUser(userId: string) {
   } catch (error) {
     console.error("hasLiveReviewForUser failed:", error);
     return false;
+  }
+}
+
+/**
+ * Company landing page: the managers at one company who have approved reviews.
+ *
+ * Deliberately returns no ratings. Scores are gated behind the unlock wall on
+ * the profile page, so surfacing an average here would hand every visitor the
+ * exact number the wall exists to withhold. Review counts are already visible
+ * to locked visitors on the profile, so they're safe to repeat.
+ */
+export async function getCompanyProfile(companySlug: string) {
+  if (!process.env.DATABASE_URL) return null;
+
+  try {
+    const company = await prisma.company.findUnique({
+      where: { slug: companySlug },
+      include: {
+        managers: {
+          where: { reviews: { some: { status: "APPROVED" } } },
+          include: {
+            _count: { select: { reviews: { where: { status: "APPROVED" } } } },
+          },
+        },
+      },
+    });
+
+    if (!company || !company.managers.length) return null;
+
+    const managers = company.managers
+      .map((manager) => ({
+        id: manager.id,
+        name: manager.name,
+        title: manager.title,
+        department: manager.department,
+        reviewCount: manager._count.reviews,
+        profilePath: managerPath(company.slug, manager.slug),
+      }))
+      .sort((a, b) => b.reviewCount - a.reviewCount || a.name.localeCompare(b.name));
+
+    return {
+      name: company.name,
+      slug: company.slug,
+      companyPath: companyPath(company.slug),
+      managerCount: managers.length,
+      reviewCount: managers.reduce((sum, manager) => sum + manager.reviewCount, 0),
+      managers,
+    };
+  } catch (error) {
+    // Same posture as getManagerProfile: a DB blip renders 404, not 5xx.
+    console.error("getCompanyProfile failed:", error);
+    return null;
+  }
+}
+
+/** Companies with at least one approved review, for the /companies index. */
+export async function getReviewedCompanies() {
+  if (!process.env.DATABASE_URL) return [];
+
+  try {
+    const companies = await prisma.company.findMany({
+      where: { managers: { some: { reviews: { some: { status: "APPROVED" } } } } },
+      select: {
+        name: true,
+        slug: true,
+        updatedAt: true,
+        managers: {
+          where: { reviews: { some: { status: "APPROVED" } } },
+          select: { id: true },
+        },
+      },
+    });
+
+    return companies
+      .map((company) => ({
+        name: company.name,
+        slug: company.slug,
+        companyPath: companyPath(company.slug),
+        managerCount: company.managers.length,
+        lastModified: company.updatedAt,
+      }))
+      .sort((a, b) => b.managerCount - a.managerCount || a.name.localeCompare(b.name));
+  } catch (error) {
+    console.error("getReviewedCompanies failed:", error);
+    return [];
   }
 }
 

@@ -8,6 +8,7 @@ import {
   hasLiveUnlockToken,
 } from "../../../../src/lib/public-data";
 import { VOTER_COOKIE, voterKeyFor } from "../../../../src/lib/votes";
+import { isVerifiedCrawler } from "../../../../src/lib/crawler";
 import { managerPath, siteUrl } from "../../../../src/lib/seo";
 import { auth } from "../../../../src/lib/auth";
 import { prisma } from "../../../../src/lib/prisma";
@@ -34,12 +35,17 @@ export async function generateMetadata({ params }: ManagerPageProps): Promise<Me
 
   if (!profile) {
     return {
-      title: "Manager Reviews | ManagerScore",
+      title: "Manager Reviews",
       robots: { index: false, follow: false },
     };
   }
 
-  const title = `${profile.name} at ${profile.company} Reviews | ManagerScore`;
+  // The layout's title template appends "| ManagerScore"; keep it out of the
+  // page-level string so the brand isn't repeated twice in the tab/SERP title.
+  const title = `${profile.name} at ${profile.company} Reviews`;
+  // openGraph/twitter titles bypass the layout template, so they need the
+  // brand spelled out to match what search and social actually display.
+  const sharedTitle = `${title} | ManagerScore`;
   const description = `Read anonymous employee reviews of ${profile.name}, ${profile.title} at ${profile.company}. See communication, support, and work-life ratings.`;
   const url = `${siteUrl()}${managerPath(companySlug, managerSlug)}`;
 
@@ -48,14 +54,14 @@ export async function generateMetadata({ params }: ManagerPageProps): Promise<Me
     description,
     alternates: { canonical: url },
     openGraph: {
-      title,
+      title: sharedTitle,
       description,
       url,
       type: "profile",
     },
     twitter: {
       card: "summary",
-      title,
+      title: sharedTitle,
       description,
     },
   };
@@ -68,7 +74,8 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
   if (!profile) notFound();
 
   const cookieStore = await cookies();
-  const session = await auth.api.getSession({ headers: await headers() }).catch(() => null);
+  const requestHeaders = await headers();
+  const session = await auth.api.getSession({ headers: requestHeaders }).catch(() => null);
 
   // Legacy grants issued before per-review unlock tracking existed: honored
   // permanently since neither can be tied back to the review that earned
@@ -87,12 +94,25 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
     session?.user?.id ? hasLiveReviewForUser(session.user.id) : Promise.resolve(false),
   ]);
 
-  const unlocked = legacyCookieUnlocked || Boolean(legacyUserUnlock) || tokenUnlocked || userReviewUnlocked;
+  const humanUnlocked =
+    legacyCookieUnlocked || Boolean(legacyUserUnlock) || tokenUnlocked || userReviewUnlocked;
+
+  // Indexers are shown the full profile so the review corpus can rank; the wall
+  // is unchanged for every human who hasn't contributed. This is only legitimate
+  // because the page also emits isAccessibleForFree markup declaring the gap —
+  // see the jsonLd below. Removing that markup turns this into cloaking.
+  //
+  // Safe only while this route stays force-dynamic: a cached crawler render
+  // served to visitors would leak the whole corpus.
+  const crawlerUnlocked = await isVerifiedCrawler(requestHeaders);
+  const unlocked = humanUnlocked || crawlerUnlocked;
+
   const isAdmin = Boolean(session?.user?.email && adminEmails().has(session.user.email.toLowerCase()));
   // The cookie is issued by the vote endpoint, so a first-time visitor simply
   // has no votes to pre-select here. Locked profiles render no vote controls,
-  // so there's nothing to look up either.
-  const myVotes = unlocked
+  // so there's nothing to look up either. Keyed off the human gate: a crawler
+  // has no voter cookie and never renders vote controls.
+  const myVotes = humanUnlocked
     ? await getVoterVotes(
         voterKeyFor({
           userId: session?.user?.id,
@@ -109,8 +129,10 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
   const canonicalUrl = `${siteUrl()}${profile.profilePath}`;
   const reviewHref = `/?review=1&manager=${encodeURIComponent(profile.name)}&company=${encodeURIComponent(profile.company)}`;
   const roleAtCompany = [profile.title, profile.company].filter(Boolean).join(" at ");
-  const jsonLd = {
-    "@context": "https://schema.org",
+  // Person carries the ratings, but it isn't a CreativeWork, so it can't hold
+  // the paywall properties Google looks for. The ProfilePage wrapper does, and
+  // mainEntity keeps the Person as the thing the page is actually about.
+  const personLd = {
     "@type": "Person",
     name: profile.name,
     jobTitle: profile.title,
@@ -126,7 +148,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
             ratingValue: profile.averageScore.toFixed(1),
             bestRating: "5",
             worstRating: "1",
-          reviewCount: profile.reviewCount,
+            reviewCount: profile.reviewCount,
           },
         }
       : {}),
@@ -149,6 +171,32 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
           })),
         }
       : {}),
+  };
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    url: canonicalUrl,
+    name: `${profile.name} Reviews`,
+    mainEntity: personLd,
+    // Declares that ratings and review text sit behind a contribution wall.
+    // This is what separates "serving crawlers the gated content" from
+    // cloaking, so it must stay in lockstep with crawlerUnlocked above.
+    isAccessibleForFree: false,
+    hasPart: [
+      {
+        "@type": "WebPageElement",
+        isAccessibleForFree: false,
+        // Class selectors only, per Google's spec. Both regions are rendered
+        // with these classes on the gated parts of the page below.
+        cssSelector: ".profile-gated-ratings",
+      },
+      {
+        "@type": "WebPageElement",
+        isAccessibleForFree: false,
+        cssSelector: ".profile-gated-reviews",
+      },
+    ],
   };
 
   return (
@@ -255,7 +303,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
         </section>
       )}
 
-      <section className="profile-stats">
+      <section className="profile-stats profile-gated-ratings" data-nosnippet>
         {(hasReviews && unlocked
           ? [
               ["Communication", profile.communication.toFixed(1)],
@@ -342,7 +390,12 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
             ))}
           </div>
         )}
-        {unlocked && hasReviews && <div className="profile-review-list">
+        {/*
+          data-nosnippet on the container, not the paragraph: it also covers
+          reviewer context, scores, and reply threads, so no gated text can
+          surface in a search snippet where a non-contributor would read it.
+        */}
+        {unlocked && hasReviews && <div className="profile-review-list profile-gated-reviews" data-nosnippet>
           {profile.reviews.map((review) => (
             <article className="profile-review-card" key={review.id} id={`review-${review.id}`}>
               <header>

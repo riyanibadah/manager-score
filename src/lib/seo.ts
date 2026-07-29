@@ -8,3 +8,7 @@ export function siteUrl() {
 export function managerPath(companySlug: string, managerSlug: string) {
   return `/managers/${companySlug}/${managerSlug}`;
 }
+
+export function companyPath(companySlug: string) {
+  return `/companies/${companySlug}`;
+}
