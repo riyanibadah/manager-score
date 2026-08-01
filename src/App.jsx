@@ -1216,7 +1216,12 @@ export default function App(props) {
 
     const previous = reviewsRef.current;
     const serverFingerprints = new Set(serverReviews.map(reviewFingerprint));
-    const stillPending = pendingLocalReviews(previous, serverFingerprints);
+    // Only this browser's own unconfirmed submissions may outlive the server's
+    // answer, and they live in localStorage. Carrying anything else forward
+    // from the rendered feed would mean a review deleted on another device
+    // survives here for as long as it looks recent — the feed is the server's
+    // list, plus whatever we posted that hasn't come back yet.
+    const stillPending = pendingLocalReviews(loadData().reviews || [], serverFingerprints);
     const merged = [...stillPending, ...serverReviews];
     if (sameReviewOrder(previous, merged)) return;
 
