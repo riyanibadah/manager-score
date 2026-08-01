@@ -12,6 +12,15 @@ const UNLOCK_KEY = 'rmm_unlocked_v1';
 // while you were watching keeps its "New" flag before settling in with the rest.
 const POLL_INTERVAL_MS = 30000;
 const FRESH_HIGHLIGHT_MS = 12000;
+// A review kept in this browser only exists to cover the seconds between
+// submitting it and the server echoing it back. Past that window, "the server
+// isn't returning it" stops meaning "not saved yet" and starts meaning deleted,
+// hidden, or pushed off the end of the feed — so holding it any longer
+// republishes removed reviews on whichever device wrote them.
+const LOCAL_REVIEW_TTL_MS = 300000;
+// Left behind at submit time: the flow redirects to the manager profile, so the
+// homepage never witnesses the submission and can't flag the row on its own.
+const SUBMITTED_KEY = 'rmm_submitted_v1';
 
 const SAMPLE_REVIEWS = [
   {
@@ -191,6 +200,31 @@ function loadData() {
 }
 function saveData(data) {
   try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { console.error(e); }
+}
+
+/**
+ * The reviews this browser is still waiting on the server to confirm: not in
+ * the server's copy of the feed, and written recently enough that "missing"
+ * still plausibly means "in flight". Anything older has been deleted or has
+ * aged out of the feed, and must not be shown again.
+ */
+function pendingLocalReviews(candidates, serverFingerprints) {
+  const cutoff = Date.now() - LOCAL_REVIEW_TTL_MS;
+  return candidates.filter(review => {
+    if (serverFingerprints.has(reviewFingerprint(review))) return false;
+    const written = new Date(review.date).getTime();
+    return Number.isFinite(written) && written >= cutoff;
+  });
+}
+
+function readSubmitted() {
+  try { return sessionStorage.getItem(SUBMITTED_KEY); } catch { return null; }
+}
+function rememberSubmitted(review) {
+  try { sessionStorage.setItem(SUBMITTED_KEY, reviewFingerprint(review)); } catch (e) { console.error(e); }
+}
+function forgetSubmitted() {
+  try { sessionStorage.removeItem(SUBMITTED_KEY); } catch (e) { console.error(e); }
 }
 
 async function generateTags(reviewText, managerTitle, company) {
@@ -1161,6 +1195,18 @@ export default function App(props) {
     reviewsRef.current = reviews;
   }, [reviews]);
 
+  // A review you wrote yourself should slide in the same way someone else's
+  // does when you next land on the feed — the redirect to the manager profile
+  // means the homepage never sees it happen.
+  const flagOwnSubmission = useCallback(list => {
+    const fingerprint = readSubmitted();
+    if (!fingerprint) return;
+    const own = list.find(review => reviewFingerprint(review) === fingerprint);
+    if (!own) return;
+    forgetSubmitted();
+    setFreshIds(prev => (prev.includes(own.id) ? prev : [...prev, own.id]));
+  }, []);
+
   const syncReviews = useCallback(async ({ markFresh = false } = {}) => {
     const data = await fetch('/api/reviews', { cache: 'no-store' })
       .then(res => (res.ok ? res.json() : null))
@@ -1170,21 +1216,20 @@ export default function App(props) {
 
     const previous = reviewsRef.current;
     const serverFingerprints = new Set(serverReviews.map(reviewFingerprint));
-    // A review submitted from this browser stays in front of the server's copy
-    // until the server echoes it back, so it never blinks out mid-poll.
-    const localOnly = previous.filter(r => !serverFingerprints.has(reviewFingerprint(r)));
-    const merged = [...localOnly, ...serverReviews];
+    const stillPending = pendingLocalReviews(previous, serverFingerprints);
+    const merged = [...stillPending, ...serverReviews];
     if (sameReviewOrder(previous, merged)) return;
 
     const knownIds = new Set(previous.map(r => r.id));
-    saveData({ reviews: localOnly });
+    saveData({ reviews: stillPending });
     reviewsRef.current = merged;
     setReviews(merged);
+    flagOwnSubmission(merged);
     if (markFresh) {
       const arrived = merged.filter(r => !knownIds.has(r.id)).map(r => r.id);
       if (arrived.length) setFreshIds(prev => [...new Set([...prev, ...arrived])]);
     }
-  }, []);
+  }, [flagOwnSubmission]);
 
   useEffect(() => {
     let timeoutId;
@@ -1212,13 +1257,22 @@ export default function App(props) {
       setView('submit');
       window.history.replaceState({}, '', window.location.pathname);
     }
-    const stored = loadData().reviews || [];
-    reviewsRef.current = stored;
-    setReviews(stored);
-    // Nothing is flagged as new on the first load: on arrival every row is new,
-    // and highlighting all four would say nothing.
+    // Keep the server-rendered rows and add only the submissions this browser
+    // is still waiting to see echoed back. Replacing them wholesale with
+    // localStorage blanked the feed until the first fetch landed, and kept
+    // every review this device ever wrote — including ones since deleted.
+    const seenFingerprints = new Set(initialReviews.map(reviewFingerprint));
+    const stillPending = pendingLocalReviews(loadData().reviews || [], seenFingerprints);
+    const seeded = [...stillPending, ...initialReviews];
+    saveData({ reviews: stillPending });
+    reviewsRef.current = seeded;
+    setReviews(seeded);
+    // Nothing else is flagged on first load: on arrival every row is new, and
+    // highlighting all four would say nothing. Your own submission is the
+    // exception — you just wrote it, so it earns the entrance.
+    flagOwnSubmission(seeded);
     syncReviews();
-  }, [syncReviews]);
+  }, [syncReviews, flagOwnSubmission]);
 
   // The feed keeps itself current, so a tab left open on the homepage shows
   // reviews posted since it loaded without anyone hitting refresh. Polling
@@ -1264,7 +1318,12 @@ export default function App(props) {
   async function handleSubmit(review) {
     const next = [...reviews, review];
     setReviews(next);
-    saveData({ reviews: next });
+    // Only not-yet-confirmed submissions are worth persisting; the rest of the
+    // feed comes from the server on every load. Writing the whole feed here is
+    // what let a deleted review live on in the browser that wrote it.
+    saveData({ reviews: [...pendingLocalReviews(loadData().reviews || [], new Set()), review] });
+    // So the feed can give it an entrance whenever this visit returns there.
+    rememberSubmitted(review);
     let profilePath = profilePathForReview(review);
     const response = await fetch('/api/reviews', {
       method: 'POST',
