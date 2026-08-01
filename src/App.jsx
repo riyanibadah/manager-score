@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { authClient } from "./lib/auth-client";
 
 const NAVY = '#080b1a';
@@ -8,6 +8,10 @@ const PURPLE = '#5b2df5';
 const GOLD = '#ff9f0a';
 const KEY = 'rmm_data_v1';
 const UNLOCK_KEY = 'rmm_unlocked_v1';
+// How often an open tab re-checks the feed, and how long a row that arrived
+// while you were watching keeps its "New" flag before settling in with the rest.
+const POLL_INTERVAL_MS = 30000;
+const FRESH_HIGHLIGHT_MS = 12000;
 
 const SAMPLE_REVIEWS = [
   {
@@ -175,6 +179,10 @@ function reviewFingerprint(r) {
   return [r.managerName, r.company, r.reviewText]
     .map(s => (s || '').trim().toLowerCase().replace(/\s+/g, ' '))
     .join('|||');
+}
+/** Cheap "did the feed actually move?" check, so an idle poll costs no render. */
+function sameReviewOrder(a, b) {
+  return a.length === b.length && a.every((review, i) => review.id === b[i].id);
 }
 
 function loadData() {
@@ -436,7 +444,8 @@ function ManagerCard({ reviews, onClick }) {
   );
 }
 
-function ReviewRow({ review, onClick, href }) {
+function ReviewRow({ review, onClick, href, isFresh = false }) {
+  const className = `home-review-row${isFresh ? ' is-fresh' : ''}`;
   const content = (
     <>
       <div className="review-person">
@@ -460,6 +469,7 @@ function ReviewRow({ review, onClick, href }) {
         <p>{review.reviewText}</p>
         <div className="review-meta">
           <span>{review.id.startsWith('sample') ? ['2h ago', '5h ago', '1d ago', '2d ago'][Number(review.id.split('-')[1]) - 1] : relativeTime(review.date)}</span>
+          {isFresh && <span className="row-fresh-flag">New</span>}
         </div>
       </div>
       <span className="row-chevron"><Icon name="chevron" size={27} /></span>
@@ -468,14 +478,14 @@ function ReviewRow({ review, onClick, href }) {
 
   if (href) {
     return (
-      <a className="home-review-row" href={href}>
+      <a className={className} href={href}>
         {content}
       </a>
     );
   }
 
   return (
-    <button className="home-review-row" onClick={onClick}>
+    <button className={className} onClick={onClick}>
       {content}
     </button>
   );
@@ -1137,7 +1147,44 @@ export default function App(props) {
   const [unlocked, setUnlocked] = useState(initialUnlocked);
   const [pendingUnlock, setPendingUnlock] = useState(false);
   const [liveSearchers, setLiveSearchers] = useState(() => 15 + Math.floor(Math.random() * 46));
+  // Ids of rows that landed while this tab was open — drives the entry
+  // animation and the "New" flag, and nothing else.
+  const [freshIds, setFreshIds] = useState([]);
+  // Bumped once a minute purely to re-render relative timestamps.
+  const [, setClockTick] = useState(0);
+  // Polling reads the current feed without re-subscribing every render, which
+  // an interval closing over `reviews` would force.
+  const reviewsRef = useRef(initialReviews);
   const allReviews = [...reviews, ...SAMPLE_REVIEWS];
+
+  useEffect(() => {
+    reviewsRef.current = reviews;
+  }, [reviews]);
+
+  const syncReviews = useCallback(async ({ markFresh = false } = {}) => {
+    const data = await fetch('/api/reviews', { cache: 'no-store' })
+      .then(res => (res.ok ? res.json() : null))
+      .catch(() => null);
+    const serverReviews = data?.reviews;
+    if (!serverReviews?.length) return;
+
+    const previous = reviewsRef.current;
+    const serverFingerprints = new Set(serverReviews.map(reviewFingerprint));
+    // A review submitted from this browser stays in front of the server's copy
+    // until the server echoes it back, so it never blinks out mid-poll.
+    const localOnly = previous.filter(r => !serverFingerprints.has(reviewFingerprint(r)));
+    const merged = [...localOnly, ...serverReviews];
+    if (sameReviewOrder(previous, merged)) return;
+
+    const knownIds = new Set(previous.map(r => r.id));
+    saveData({ reviews: localOnly });
+    reviewsRef.current = merged;
+    setReviews(merged);
+    if (markFresh) {
+      const arrived = merged.filter(r => !knownIds.has(r.id)).map(r => r.id);
+      if (arrived.length) setFreshIds(prev => [...new Set([...prev, ...arrived])]);
+    }
+  }, []);
 
   useEffect(() => {
     let timeoutId;
@@ -1165,21 +1212,53 @@ export default function App(props) {
       setView('submit');
       window.history.replaceState({}, '', window.location.pathname);
     }
-    setReviews(loadData().reviews || []);
-    fetch('/api/reviews')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data?.reviews?.length) {
-          setReviews(prev => {
-            const serverFingerprints = new Set(data.reviews.map(reviewFingerprint));
-            const localOnly = prev.filter(r => !serverFingerprints.has(reviewFingerprint(r)));
-            const merged = [...localOnly, ...data.reviews];
-            saveData({ reviews: localOnly });
-            return merged;
-          });
-        }
-      })
-      .catch(() => {});
+    const stored = loadData().reviews || [];
+    reviewsRef.current = stored;
+    setReviews(stored);
+    // Nothing is flagged as new on the first load: on arrival every row is new,
+    // and highlighting all four would say nothing.
+    syncReviews();
+  }, [syncReviews]);
+
+  // The feed keeps itself current, so a tab left open on the homepage shows
+  // reviews posted since it loaded without anyone hitting refresh. Polling
+  // rather than a socket: the payload is 20 rows on a route that already exists,
+  // and holding a connection per visitor open against serverless would cost far
+  // more than it returns at this cadence. A hidden tab skips the request
+  // entirely and catches up the moment it comes back.
+  useEffect(() => {
+    let timeoutId;
+    const queue = () => {
+      timeoutId = setTimeout(() => {
+        if (document.visibilityState === 'visible') syncReviews({ markFresh: true });
+        queue();
+      }, POLL_INTERVAL_MS);
+    };
+    queue();
+
+    const onWake = () => {
+      if (document.visibilityState === 'visible') syncReviews({ markFresh: true });
+    };
+    document.addEventListener('visibilitychange', onWake);
+    window.addEventListener('focus', onWake);
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', onWake);
+      window.removeEventListener('focus', onWake);
+    };
+  }, [syncReviews]);
+
+  // The flag is a nudge, not a label — it clears once the arrival has been seen.
+  useEffect(() => {
+    if (!freshIds.length) return undefined;
+    const timeoutId = setTimeout(() => setFreshIds([]), FRESH_HIGHLIGHT_MS);
+    return () => clearTimeout(timeoutId);
+  }, [freshIds]);
+
+  // "Just now" shouldn't still read "Just now" twenty minutes later.
+  useEffect(() => {
+    const intervalId = setInterval(() => setClockTick(tick => tick + 1), 60000);
+    return () => clearInterval(intervalId);
   }, []);
 
   async function handleSubmit(review) {
@@ -1449,6 +1528,7 @@ export default function App(props) {
               <ReviewRow
                 key={review.id}
                 review={review}
+                isFresh={freshIds.includes(review.id)}
                 href={profilePathForReview(review)}
                 onClick={() => {
                   setActiveKey(managerKey(review));

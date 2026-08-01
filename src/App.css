@@ -668,6 +668,53 @@ button, input, textarea, select { font: inherit; }
   box-shadow: 0 14px 32px rgba(18, 23, 40, 0.08);
   transform: translateY(-1px);
 }
+/* A row that arrives while you're reading eases in from above and holds a
+   purple ring just long enough to be noticed, then settles into the list
+   rather than staying marked forever. The two animations run in sequence:
+   the ring is the `from` state through the entry, courtesy of `both`. */
+@keyframes review-row-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes review-row-settle {
+  from {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px rgba(91, 45, 245, 0.15), 0 14px 32px rgba(18, 23, 40, 0.1);
+  }
+  to {
+    border-color: var(--line);
+    box-shadow: 0 0 0 3px rgba(91, 45, 245, 0), 0 8px 20px rgba(18, 23, 40, 0.04);
+  }
+}
+.home-review-row.is-fresh {
+  animation:
+    review-row-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    review-row-settle 2.6s ease-out 0.45s both;
+}
+.row-fresh-flag {
+  align-self: center;
+  border-radius: 999px;
+  background: #efe9ff;
+  color: var(--purple);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+}
+/* Motion is the flourish; the flag is the information. Drop the first, keep
+   the second. */
+@media (prefers-reduced-motion: reduce) {
+  .home-review-row.is-fresh {
+    animation: none;
+  }
+}
 .review-person {
   display: flex;
   align-items: center;
