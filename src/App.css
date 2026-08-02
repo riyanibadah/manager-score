@@ -559,6 +559,16 @@ button, input, textarea, select { font: inherit; }
   font-size: 12px;
   font-weight: 750;
 }
+/* The row for a manager who has no profile yet. Muted rather than purple so it
+   reads as the fallback under the real matches, not the recommended pick. */
+.hero-suggest-new {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #f1f3f9;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
 .hero-search-hint {
   width: fit-content;
   max-width: 720px;

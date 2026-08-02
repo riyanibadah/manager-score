@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../src/lib/prisma";
 import { companyInitials, companyLogoSrc } from "../../../../src/lib/company-logo";
+import { normalizeCompanyName, slugify } from "../../../../src/lib/reviews";
 import { managerPath } from "../../../../src/lib/seo";
 
 /**
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
   const company = searchParams.get("company")?.trim() ?? "";
 
   if (q.length < MIN_QUERY || !process.env.DATABASE_URL) {
-    return NextResponse.json({ managers: [] });
+    return NextResponse.json({ managers: [], company: null });
   }
 
   try {
@@ -47,6 +48,7 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({
+      company: await resolveCompany(company),
       managers: managers.map((manager) => ({
         id: manager.id,
         name: manager.name,
@@ -62,6 +64,32 @@ export async function GET(request: Request) {
     });
   } catch {
     // A dead suggest endpoint must not break typing. Fall back to no results.
-    return NextResponse.json({ managers: [] });
+    return NextResponse.json({ managers: [], company: null });
   }
+}
+
+/**
+ * The company the typed text names, if it is one we know.
+ *
+ * Resolved through normalizeCompanyName and slugify — the same pair the
+ * profile route uses — so "AWS", "Twitch" and "amazon" all land on the company
+ * whose profile the client would actually navigate to. Falling back to a plain
+ * name match keeps companies that predate the alias list reachable.
+ */
+async function resolveCompany(input: string) {
+  if (!input) return null;
+
+  const slug = slugify(normalizeCompanyName(input));
+  const company =
+    (slug ? await prisma.company.findUnique({ where: { slug } }) : null) ??
+    (await prisma.company.findFirst({ where: { name: { equals: input, mode: "insensitive" } } }));
+
+  if (!company) return null;
+
+  return {
+    name: company.name,
+    slug: company.slug,
+    logoSrc: companyLogoSrc(company.slug),
+    initials: companyInitials(company.name),
+  };
 }

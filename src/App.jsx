@@ -1177,6 +1177,7 @@ export default function App(props) {
   const [searchLastName, setSearchLastName] = useState('');
   const [searchCompany, setSearchCompany] = useState('');
   const [suggestions, setSuggestions] = useState([]);
+  const [companyMatch, setCompanyMatch] = useState(null);
   const [suggestOpen, setSuggestOpen] = useState(false);
   const [suggestIndex, setSuggestIndex] = useState(-1);
   const searchShellRef = useRef(null);
@@ -1380,7 +1381,33 @@ export default function App(props) {
 
   const suggestQuery = searchName;
   const suggestCompany = searchCompany.trim();
-  const showSuggest = suggestOpen && suggestions.length > 0;
+
+  // Someone who typed a full name and a company we recognise gets a row for
+  // that person even when no manager record exists yet — the profile route
+  // creates it on the way through, so the dropdown can offer it up front.
+  // Suppressed once a real match with the same name is already listed, so the
+  // list never shows the same person twice.
+  const alreadyListed = suggestions.some(
+    manager =>
+      manager.name.trim().toLowerCase() === searchName.toLowerCase() &&
+      (!companyMatch || manager.company.trim().toLowerCase() === companyMatch.name.toLowerCase()),
+  );
+  const suggestRows = [
+    ...suggestions,
+    ...(searchNameHasFullName && companyMatch && !alreadyListed
+      ? [{
+          id: '__new__',
+          isNew: true,
+          name: searchName,
+          title: '',
+          company: companyMatch.name,
+          logoSrc: companyMatch.logoSrc,
+          initials: companyMatch.initials,
+          reviewCount: 0,
+        }]
+      : []),
+  ];
+  const showSuggest = suggestOpen && suggestRows.length > 0;
 
   // Typeahead under the hero box. Debounced so it isn't a request per
   // keystroke, and aborted whenever the query moves on — otherwise a slow
@@ -1388,6 +1415,7 @@ export default function App(props) {
   useEffect(() => {
     if (suggestQuery.length < 2) {
       setSuggestions([]);
+      setCompanyMatch(null);
       return undefined;
     }
 
@@ -1403,6 +1431,7 @@ export default function App(props) {
 
       const data = await response.json().catch(() => null);
       setSuggestions(data?.managers ?? []);
+      setCompanyMatch(data?.company ?? null);
       setSuggestIndex(-1);
     }, 180);
 
@@ -1425,6 +1454,12 @@ export default function App(props) {
 
   function chooseSuggestion(manager) {
     setSuggestOpen(false);
+    // The placeholder row has no profile to go to yet. Hand it to the normal
+    // search, which creates the manager and redirects to the new profile.
+    if (manager.isNew) {
+      handleSearch();
+      return;
+    }
     window.location.href = manager.profilePath;
   }
 
@@ -1438,14 +1473,14 @@ export default function App(props) {
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      setSuggestIndex(index => (index + 1) % suggestions.length);
+      setSuggestIndex(index => (index + 1) % suggestRows.length);
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
-      setSuggestIndex(index => (index <= 0 ? suggestions.length - 1 : index - 1));
+      setSuggestIndex(index => (index <= 0 ? suggestRows.length - 1 : index - 1));
     } else if (event.key === 'Enter') {
       if (suggestIndex >= 0) {
         event.preventDefault();
-        chooseSuggestion(suggestions[suggestIndex]);
+        chooseSuggestion(suggestRows[suggestIndex]);
       } else {
         handleSearch();
       }
@@ -1634,7 +1669,7 @@ export default function App(props) {
 
                 {showSuggest ? (
                   <ul className="hero-suggest" id="hero-suggest-list" role="listbox">
-                    {suggestions.map((manager, index) => (
+                    {suggestRows.map((manager, index) => (
                       <li key={manager.id} role="presentation">
                         <button
                           type="button"
@@ -1670,7 +1705,9 @@ export default function App(props) {
                               {[manager.title, manager.company].filter(Boolean).join(' · ')}
                             </span>
                           </span>
-                          {manager.reviewCount > 0 ? (
+                          {manager.isNew ? (
+                            <span className="hero-suggest-count hero-suggest-new">New profile</span>
+                          ) : manager.reviewCount > 0 ? (
                             <span className="hero-suggest-count">
                               {manager.reviewCount} review{manager.reviewCount !== 1 ? 's' : ''}
                             </span>
