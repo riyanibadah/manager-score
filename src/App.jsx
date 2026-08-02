@@ -1176,6 +1176,10 @@ export default function App(props) {
   const [searchFirstName, setSearchFirstName] = useState('');
   const [searchLastName, setSearchLastName] = useState('');
   const [searchCompany, setSearchCompany] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestIndex, setSuggestIndex] = useState(-1);
+  const searchShellRef = useRef(null);
   const [showModal, setShowModal] = useState(false);
   const [searchStage, setSearchStage] = useState(null); // null | 'loading' | 'auth' | 'gate'
   const [unlocked, setUnlocked] = useState(initialUnlocked);
@@ -1374,7 +1378,84 @@ export default function App(props) {
     : [];
   const searchTerm = canSearch ? `${searchName} at ${searchCompany.trim()}` : '';
 
+  const suggestQuery = searchName;
+  const suggestCompany = searchCompany.trim();
+  const showSuggest = suggestOpen && suggestions.length > 0;
+
+  // Typeahead under the hero box. Debounced so it isn't a request per
+  // keystroke, and aborted whenever the query moves on — otherwise a slow
+  // response for "jo" can land after "john" and repopulate the stale list.
+  useEffect(() => {
+    if (suggestQuery.length < 2) {
+      setSuggestions([]);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      const params = new URLSearchParams({ q: suggestQuery });
+      if (suggestCompany) params.set('company', suggestCompany);
+
+      const response = await fetch(`/api/managers/suggest?${params}`, {
+        signal: controller.signal,
+      }).catch(() => null);
+      if (!response?.ok) return;
+
+      const data = await response.json().catch(() => null);
+      setSuggestions(data?.managers ?? []);
+      setSuggestIndex(-1);
+    }, 180);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [suggestQuery, suggestCompany]);
+
+  // A click anywhere else dismisses the list. Pointer-down rather than click so
+  // it closes on press, matching how native selects behave.
+  useEffect(() => {
+    if (!suggestOpen) return undefined;
+    function handlePointerDown(event) {
+      if (!searchShellRef.current?.contains(event.target)) setSuggestOpen(false);
+    }
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [suggestOpen]);
+
+  function chooseSuggestion(manager) {
+    setSuggestOpen(false);
+    window.location.href = manager.profilePath;
+  }
+
+  /** Arrow keys walk the list; Enter takes the highlighted row or runs the
+   *  normal search when nothing is highlighted. */
+  function handleSearchKeyDown(event) {
+    if (!showSuggest) {
+      if (event.key === 'Enter') handleSearch();
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setSuggestIndex(index => (index + 1) % suggestions.length);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setSuggestIndex(index => (index <= 0 ? suggestions.length - 1 : index - 1));
+    } else if (event.key === 'Enter') {
+      if (suggestIndex >= 0) {
+        event.preventDefault();
+        chooseSuggestion(suggestions[suggestIndex]);
+      } else {
+        handleSearch();
+      }
+    } else if (event.key === 'Escape') {
+      setSuggestOpen(false);
+    }
+  }
+
   async function handleSearch() {
+    setSuggestOpen(false);
     if (!qName || !qCompany) return;
     if (!searchNameHasFullName) {
       setShowModal(false);
@@ -1516,32 +1597,89 @@ export default function App(props) {
               <h1>Know your manager <span>before you join.</span></h1>
               <p>Search managers and see what employees actually think.</p>
 
-              <div className="hero-search-wrap">
-                <Icon name="search" size={28} />
-                <input
-                  className="hero-search-input hero-search-name"
-                  placeholder="First name"
-                  value={searchFirstName}
-                  onChange={e => setSearchFirstName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                />
-                <span className="hero-search-divider" />
-                <input
-                  className="hero-search-input hero-search-name"
-                  placeholder="Last name"
-                  value={searchLastName}
-                  onChange={e => setSearchLastName(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                />
-                <span className="hero-search-divider" />
-                <input
-                  className="hero-search-input hero-search-company"
-                  placeholder="Company"
-                  value={searchCompany}
-                  onChange={e => setSearchCompany(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                />
-                <button className="hero-search-btn" disabled={!canSearch} onClick={handleSearch}>Search</button>
+              <div className="hero-search-shell" ref={searchShellRef}>
+                <div className="hero-search-wrap">
+                  <Icon name="search" size={28} />
+                  <input
+                    className="hero-search-input hero-search-name"
+                    placeholder="First name"
+                    value={searchFirstName}
+                    onChange={e => { setSearchFirstName(e.target.value); setSuggestOpen(true); }}
+                    onFocus={() => setSuggestOpen(true)}
+                    onKeyDown={handleSearchKeyDown}
+                    role="combobox"
+                    aria-expanded={showSuggest}
+                    aria-controls="hero-suggest-list"
+                    aria-autocomplete="list"
+                  />
+                  <span className="hero-search-divider" />
+                  <input
+                    className="hero-search-input hero-search-name"
+                    placeholder="Last name"
+                    value={searchLastName}
+                    onChange={e => { setSearchLastName(e.target.value); setSuggestOpen(true); }}
+                    onFocus={() => setSuggestOpen(true)}
+                    onKeyDown={handleSearchKeyDown}
+                  />
+                  <span className="hero-search-divider" />
+                  <input
+                    className="hero-search-input hero-search-company"
+                    placeholder="Company"
+                    value={searchCompany}
+                    onChange={e => setSearchCompany(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                  />
+                  <button className="hero-search-btn" disabled={!canSearch} onClick={handleSearch}>Search</button>
+                </div>
+
+                {showSuggest ? (
+                  <ul className="hero-suggest" id="hero-suggest-list" role="listbox">
+                    {suggestions.map((manager, index) => (
+                      <li key={manager.id} role="presentation">
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={index === suggestIndex}
+                          className={`hero-suggest-item${index === suggestIndex ? ' is-active' : ''}`}
+                          // Mouse-down, not click: the input's blur would pull
+                          // the row out from under the pointer first otherwise.
+                          onMouseDown={e => { e.preventDefault(); chooseSuggestion(manager); }}
+                          onMouseEnter={() => setSuggestIndex(index)}
+                        >
+                          {manager.logoSrc ? (
+                            <img
+                              className="company-logo"
+                              src={manager.logoSrc}
+                              alt=""
+                              width={36}
+                              height={36}
+                              style={{ width: 36, height: 36 }}
+                            />
+                          ) : (
+                            <span
+                              className="company-logo company-logo-fallback"
+                              style={{ width: 36, height: 36, fontSize: 13 }}
+                              aria-hidden="true"
+                            >
+                              {manager.initials}
+                            </span>
+                          )}
+                          <span className="hero-suggest-text">
+                            <span className="hero-suggest-name">{manager.name}</span>
+                            <span className="hero-suggest-meta">
+                              {[manager.title, manager.company].filter(Boolean).join(' · ')}
+                            </span>
+                          </span>
+                          {manager.reviewCount > 0 ? (
+                            <span className="hero-suggest-count">
+                              {manager.reviewCount} review{manager.reviewCount !== 1 ? 's' : ''}
+                            </span>
+                          ) : null}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
               {showSearchNameHint ? (
                 <div className="hero-search-hint">

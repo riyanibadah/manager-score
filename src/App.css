@@ -489,6 +489,76 @@ button, input, textarea, select { font: inherit; }
   cursor: not-allowed;
   box-shadow: none;
 }
+
+/* ---- Typeahead under the hero search ---- */
+.hero-search-shell {
+  position: relative;
+  max-width: 720px;
+  /* Above the hero's decorative gradients, or the panel renders behind them. */
+  z-index: 20;
+}
+.hero-suggest {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  left: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #dfe4ee;
+  border-radius: 14px;
+  box-shadow: 0 22px 44px rgba(18, 23, 40, 0.16);
+}
+.hero-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+/* Hover and keyboard selection are the same state, so pointer and arrow keys
+   can't disagree about which row is about to be chosen. */
+.hero-suggest-item.is-active {
+  background: #f4f1ff;
+}
+.hero-suggest-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.hero-suggest-name {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+/* Imported titles run long ("Senior Manager, Software Development ..."), so the
+   row is allowed to truncate rather than wrap the panel to three lines. */
+.hero-suggest-name,
+.hero-suggest-meta {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.hero-suggest-meta {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.35;
+}
+.hero-suggest-count {
+  flex: 0 0 auto;
+  color: var(--purple);
+  font-size: 12px;
+  font-weight: 750;
+}
 .hero-search-hint {
   width: fit-content;
   max-width: 720px;
