@@ -1641,6 +1641,14 @@ export default function App(props) {
           <a href="/terms">Terms</a>
         </nav>
         <div className="social-links"><span>t</span><span>in</span><span>◎</span></div>
+        {/* The feed above names real managers and scores them, so the framing
+            belongs on this page too — not only on the profiles it links to. */}
+        <p className="footer-disclaimer">
+          Reviews are the personal opinions of individual contributors, not verified statements of
+          fact, and not the views of ManagerScore. Company names and logos are trademarks of their
+          respective owners, used to identify the workplace a review refers to; ManagerScore is not
+          affiliated with or endorsed by them. See our <a href="/terms">Terms of Service</a>.
+        </p>
       </footer>
     </div>
   );

@@ -918,6 +918,24 @@ button, input, textarea, select { font: inherit; }
   color: #536078;
   font-weight: 850;
 }
+/* Spans the footer's three columns rather than becoming a fourth cell. Set in
+   small, quiet type: it has to be readable and present, not compete with the
+   page. */
+.footer-disclaimer {
+  grid-column: 1 / -1;
+  margin: 0 0 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  max-width: 88ch;
+  color: #6b7794;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.site-footer .footer-disclaimer a {
+  font-size: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
 
 .profile-page {
   min-height: 100vh;
@@ -934,6 +952,37 @@ button, input, textarea, select { font: inherit; }
 .profile-section {
   width: min(100% - 40px, 1040px);
   margin: 0 auto;
+}
+/* Closing note on pages that rate a named person. Shares the column width of
+   the content it qualifies, and stays deliberately understated — it is there
+   to be found and read, not to shout over the reviews. */
+.profile-disclaimer {
+  width: min(100% - 40px, 1040px);
+  margin: 40px auto 0;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  color: #6b7794;
+  font-size: 13px;
+  line-height: 1.75;
+}
+.profile-disclaimer h2 {
+  margin: 0 0 10px;
+  color: #536078;
+  font-size: 14px;
+  font-weight: 850;
+  letter-spacing: 0.01em;
+}
+.profile-disclaimer p {
+  margin: 0 0 10px;
+  max-width: 92ch;
+}
+.profile-disclaimer p:last-child {
+  margin-bottom: 0;
+}
+.profile-disclaimer a {
+  color: var(--purple);
+  font-weight: 700;
+  text-decoration: underline;
 }
 .profile-summary {
   margin-top: 14px;

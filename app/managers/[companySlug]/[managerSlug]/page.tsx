@@ -441,6 +441,32 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
           ))}
         </div>}
       </section>
+
+      {/* This page carries ratings about a named individual, and most people
+          reach it straight from a search result without ever passing the terms.
+          So the framing lives here rather than only at /terms: what the content
+          is, what it isn't, and how the subject can push back. data-nosnippet
+          keeps it out of search snippets, where it would crowd out the page's
+          actual summary. */}
+      <section className="profile-disclaimer" data-nosnippet>
+        <h2>About this profile</h2>
+        <p>
+          Reviews here are the personal opinions and first-hand experiences of individual
+          contributors. They are not statements of fact, are not verified by ManagerScore, and are
+          not our views. Ratings reflect only the people who chose to submit one, so they may not
+          be representative of {profile.name}&rsquo;s work or of anyone else&rsquo;s experience.
+        </p>
+        <p>
+          ManagerScore is not affiliated with, endorsed by, or sponsored by {profile.company}.
+          Company names and logos are trademarks of their respective owners, used only to identify
+          the workplace a review refers to.
+        </p>
+        <p>
+          If you are {profile.name} and believe something on this page is inaccurate or breaches
+          our <a href="/terms">Terms of Service</a>, use the Report control on any review, or see{" "}
+          <a href="/terms">our moderation and removal policy</a>.
+        </p>
+      </section>
     </main>
   );
 }

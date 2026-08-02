@@ -150,6 +150,23 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
           <a className="btn-primary" href={reviewHref}>Write an anonymous review →</a>
         </div>
       </section>
+
+      {/* Shorter than the profile-page version: this page ranks managers by
+          score, so it needs the same "opinions, not facts" framing and the
+          same trademark line, but the subject-specific redress route belongs
+          on the individual's own page. */}
+      <section className="profile-disclaimer" data-nosnippet>
+        <p>
+          Ratings and rankings on this page come from anonymous employee reviews — personal
+          opinions, not verified statements of fact, and not the views of ManagerScore. They
+          reflect only the people who chose to submit a review.
+        </p>
+        <p>
+          ManagerScore is not affiliated with, endorsed by, or sponsored by {company.name}. Company
+          names and logos are trademarks of their respective owners, used to identify the workplace
+          a review refers to. See our <a href="/terms">Terms of Service</a>.
+        </p>
+      </section>
     </main>
   );
 }
