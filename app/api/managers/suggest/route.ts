@@ -41,10 +41,7 @@ export async function GET(request: Request) {
       // above the long tail of imported names that share a prefix.
       orderBy: [{ reviews: { _count: "desc" } }, { name: "asc" }],
       take: LIMIT,
-      include: {
-        company: true,
-        _count: { select: { reviews: { where: { status: "APPROVED" } } } },
-      },
+      include: { company: true },
     });
 
     return NextResponse.json({
@@ -59,7 +56,6 @@ export async function GET(request: Request) {
         // gets a url or a null and renders the initials tile itself.
         logoSrc: companyLogoSrc(manager.company.slug),
         initials: companyInitials(manager.company.name),
-        reviewCount: manager._count.reviews,
       })),
     });
   } catch {

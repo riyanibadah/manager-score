@@ -1403,7 +1403,6 @@ export default function App(props) {
           company: companyMatch.name,
           logoSrc: companyMatch.logoSrc,
           initials: companyMatch.initials,
-          reviewCount: 0,
         }]
       : []),
   ];
@@ -1706,11 +1705,7 @@ export default function App(props) {
                             </span>
                           </span>
                           {manager.isNew ? (
-                            <span className="hero-suggest-count hero-suggest-new">New profile</span>
-                          ) : manager.reviewCount > 0 ? (
-                            <span className="hero-suggest-count">
-                              {manager.reviewCount} review{manager.reviewCount !== 1 ? 's' : ''}
-                            </span>
+                            <span className="hero-suggest-badge">New profile</span>
                           ) : null}
                         </button>
                       </li>
