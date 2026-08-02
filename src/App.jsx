@@ -1704,9 +1704,6 @@ export default function App(props) {
                               {[manager.title, manager.company].filter(Boolean).join(' · ')}
                             </span>
                           </span>
-                          {manager.isNew ? (
-                            <span className="hero-suggest-badge">New profile</span>
-                          ) : null}
                         </button>
                       </li>
                     ))}
