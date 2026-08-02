@@ -3,3 +3,7 @@ dist
 .next
 .env
 .env.local
+# Bulk-collected manager profiles used by scripts/seed-managers.mjs. Kept out of
+# git deliberately: it is personal data, and history is not something you can
+# take back. Seed from a local checkout, not from a build.
+managers_data
