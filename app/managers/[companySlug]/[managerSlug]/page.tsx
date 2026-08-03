@@ -298,9 +298,9 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
       <section className="profile-stats profile-gated-ratings" data-nosnippet>
         {(hasReviews && unlocked
           ? [
-              ["Communication", profile.communication.toFixed(1)],
-              ["Support & Growth", profile.supportGrowth.toFixed(1)],
-              ["Work-Life Balance", profile.worklife.toFixed(1)],
+              ["Communication", formatRating(profile.communication)],
+              ["Support & Growth", formatRating(profile.supportGrowth)],
+              ["Work-Life Balance", formatRating(profile.worklife)],
               ["Would Work Again", `${profile.wouldAgainPct}%`],
             ]
           : !unlocked
@@ -524,6 +524,20 @@ function initials(name: string) {
     .slice(0, 2)
     .map((word) => word[0]?.toUpperCase() || "")
     .join("");
+}
+
+/**
+ * Category ratings are whole numbers per review, so a single-review profile
+ * showing "4.0" implies a precision that was never collected — it reads as a
+ * measurement when it is just a 4.
+ *
+ * Averaging several reviews genuinely can land between whole numbers, though,
+ * and rounding 4.5 to 4 or 5 would misstate it. So a whole number prints whole
+ * and everything else keeps its decimal. The headline score stays toFixed(1)
+ * regardless: it is an average of averages and rarely lands on an integer.
+ */
+function formatRating(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 function scoreToneClass(score: number) {

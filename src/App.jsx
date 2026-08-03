@@ -169,6 +169,16 @@ function relativeTime(date) {
   if (months < 12) return `${months}mo ago`;
   return `${Math.floor(days / 365)}y ago`;
 }
+/**
+ * Category ratings are whole numbers per review, so "4.0" on a single-review
+ * profile implies a precision nobody recorded. Averaging several reviews can
+ * genuinely land between whole numbers though, and rounding 4.5 away would
+ * misstate it — so whole prints whole, and the rest keeps a decimal. Overall
+ * stays toFixed(1): it averages the categories and rarely lands on an integer.
+ */
+function formatRating(value) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
 function calculatedOverall(review) {
   const ratings = [review.communication, review.recognition, review.worklife].map(Number).filter(Boolean);
   return ratings.length ? avg(ratings) : Number(review.overall) || 0;
@@ -592,7 +602,7 @@ function ProfileView({ reviews, onBack, onAddReview }) {
           <ScoreBadge score={overall} large />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 10, marginTop: '1.5rem' }}>
-          {[['Overall', overall.toFixed(1)], ['Communication', communication.toFixed(1)], ['Work-life', worklife.toFixed(1)], ['Recognition', recognition.toFixed(1)], ['Would again', wouldPct + '%']].map(([l, v]) => (
+          {[['Overall', overall.toFixed(1)], ['Communication', formatRating(communication)], ['Work-life', formatRating(worklife)], ['Recognition', formatRating(recognition)], ['Would again', wouldPct + '%']].map(([l, v]) => (
             <div key={l} style={{ background: '#f8fafc', borderRadius: 10, padding: '14px', textAlign: 'center' }}>
               <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px' }}>{v}</div>
               <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, lineHeight: 1.35 }}>{l}</div>
