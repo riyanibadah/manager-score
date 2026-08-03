@@ -632,32 +632,38 @@ function ManualTagAdder({ onAdd }) {
   );
 }
 
-function TagPicker({ selected, onChange }) {
+function TagPicker({ selected, onChange, max = 5 }) {
   function toggle(tag, sentiment) {
     const exists = selected.some(t => t.tag === tag);
     if (exists) {
       onChange(selected.filter(t => t.tag !== tag));
-    } else {
+    } else if (selected.length < max) {
       onChange([...selected, { tag, sentiment }]);
     }
   }
 
   return (
-    <div style={{ display: 'grid', gap: 18 }}>
+    <div className="review-tag-picker">
+      <div className="review-tag-header">
+        <span>Pick up to {max}</span>
+        <small>{selected.length}/{max} selected</small>
+      </div>
       {[
         ['What helped?', POSITIVE_TAGS, 'positive'],
         ['What hurt?', NEGATIVE_TAGS, 'negative'],
       ].map(([label, tags, sentiment]) => (
         <div key={label}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: '#374151', marginBottom: 10 }}>{label}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div className="review-tag-label">{label}</div>
+          <div className="review-tag-options">
             {tags.map(tag => {
               const active = selected.some(t => t.tag === tag);
+              const disabled = !active && selected.length >= max;
               return (
                 <button
                   key={tag}
                   type="button"
                   className={`tag-choice ${active ? `tag-choice-${sentiment}` : ''}`}
+                  disabled={disabled}
                   onClick={() => toggle(tag, sentiment)}
                 >
                   {tag}
@@ -691,7 +697,6 @@ function looksLikeLinkedin(value) {
 }
 
 function SubmitForm({ initialValues, onClose, onSubmit }) {
-  const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     managerName: initialValues?.managerName || '',
     managerTitle: initialValues?.managerTitle || '',
@@ -705,220 +710,198 @@ function SubmitForm({ initialValues, onClose, onSubmit }) {
     communication: 0, worklife: 0, recognition: 0,
     wouldAgain: null, reviewText: '', traits: [], safetyConfirmed: false,
   });
-  const [loadingTags, setLoadingTags] = useState(false);
+  const [showLinkedin, setShowLinkedin] = useState(false);
+  const [showContext, setShowContext] = useState(false);
   const [error, setError] = useState('');
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const step1Valid = form.managerName.trim() && isFullPersonName(form.managerName) && form.managerTitle.trim() && form.company.trim();
   const derivedOverall = calculatedOverall(form);
-  const step2Valid = form.communication && form.worklife && form.recognition && form.wouldAgain !== null;
-  const step3Valid = form.reviewText.trim().length >= 80;
-
-  async function handleGenerateTags() {
-    if (!form.reviewText.trim() || form.reviewText.length < 20) { setError('Write at least 20 characters first.'); return; }
-    setError(''); setLoadingTags(true);
-    try {
-      const tags = await generateTags(form.reviewText, form.managerTitle, form.company);
-      set('traits', tags);
-    } catch { setError('Could not generate tags — add them manually or skip.'); }
-    setLoadingTags(false);
-  }
+  const reviewMinimum = 60;
+  const reviewLength = form.reviewText.trim().length;
 
   function handleSubmit() {
-    if (!step3Valid) { setError('Please write at least 80 characters so the review is useful.'); return; }
+    if (!form.managerName.trim() || !form.managerTitle.trim() || !form.company.trim()) {
+      setError('Please fill in the required manager fields.');
+      return;
+    }
+    if (!isFullPersonName(form.managerName)) {
+      setError("Please enter the manager's first and last name.");
+      return;
+    }
+    if (!looksLikeLinkedin(form.linkedinUrl)) {
+      setError('Enter a valid LinkedIn URL or leave it blank.');
+      return;
+    }
+    if (!form.communication || !form.worklife || !form.recognition || form.wouldAgain === null) {
+      setError('Please complete the ratings.');
+      return;
+    }
+    if (reviewLength < reviewMinimum) {
+      setError(`Please write at least ${reviewMinimum} characters so the review is useful.`);
+      return;
+    }
     if (!form.safetyConfirmed) { setError('Please confirm the anonymous safety check before submitting.'); return; }
     const { safetyConfirmed, ...review } = form;
     onSubmit({ ...review, overall: derivedOverall, id: Date.now().toString(), date: new Date().toISOString() });
   }
 
-  const stepLabels = ['Manager info', 'Quick ratings', 'Tags & review', 'Context'];
-
   return (
-    <div style={{ background: '#fff', borderRadius: 16, padding: '2rem', width: '100%', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+    <div className="review-form-shell">
+      <div className="review-form-header">
         <div>
-          <div style={{ fontWeight: 800, fontSize: 20, color: '#0f172a', letterSpacing: '-0.3px' }}>Rate your manager</div>
-          <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 3 }}>{stepLabels[step - 1]} · Step {step} of 4</div>
+          <div className="review-form-title">Write an anonymous review</div>
+          <div className="review-form-subtitle">Quick, private, and useful for the next person joining the team.</div>
         </div>
-        <button onClick={onClose} className="modal-close" style={{ position: 'static' }}>×</button>
-      </div>
-      <div style={{ height: 4, background: '#f1f5f9', borderRadius: 4, marginBottom: '2rem', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${(step / 4) * 100}%`, background: PURPLE, borderRadius: 4, transition: 'width 0.35s ease' }} />
+        <button onClick={onClose} className="modal-close review-form-close">×</button>
       </div>
 
-      {step === 1 && (
-        <div>
-          <p style={{ fontSize: 14, color: '#64748b', marginBottom: '1.5rem', lineHeight: 1.65 }}>Start with the basics so the review lands on the right manager profile.</p>
-          {[['managerName', "Manager's full name *", "e.g. Alex Johnson"], ['managerTitle', 'Their job title *', 'e.g. Senior Engineering Manager']].map(([k, l, p]) => (
-            <div key={k} style={{ marginBottom: '1.25rem' }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6, display: 'block' }}>{l}</label>
-              <input className="field-input" placeholder={p} value={form[k]} onChange={e => set(k, e.target.value)} />
-            </div>
-          ))}
-          <div className="form-two-col">
-            {[['company', 'Company *', 'e.g. Acme Corp'], ['department', 'Team or department', 'e.g. Engineering']].map(([k, l, p]) => (
-              <div key={k}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6, display: 'block' }}>{l}</label>
-                <input className="field-input" placeholder={p} value={form[k]} onChange={e => set(k, e.target.value)} />
+      <div className="review-form-body">
+        <section className="review-form-section">
+          <div className="review-section-heading">
+            <span>Manager</span>
+            <small>Who is this about?</small>
+          </div>
+          <div className="review-field-grid">
+            <label className="review-field review-field-wide">
+              <span>Manager's first and last name *</span>
+              <input className="field-input" placeholder="e.g. Alex Johnson" value={form.managerName} onChange={e => set('managerName', e.target.value)} />
+            </label>
+            <label className="review-field">
+              <span>Company *</span>
+              <input className="field-input" placeholder="e.g. Amazon" value={form.company} onChange={e => set('company', e.target.value)} />
+            </label>
+            <label className="review-field">
+              <span>Manager title or role *</span>
+              <input className="field-input" placeholder="e.g. Engineering Manager" value={form.managerTitle} onChange={e => set('managerTitle', e.target.value)} />
+            </label>
+            <label className="review-field">
+              <span>Team or department</span>
+              <input className="field-input" placeholder="Optional" value={form.department} onChange={e => set('department', e.target.value)} />
+            </label>
+          </div>
+          <button type="button" className="review-secondary-toggle" onClick={() => setShowLinkedin(v => !v)}>
+            {showLinkedin ? 'Hide LinkedIn' : 'Add LinkedIn profile'}
+          </button>
+          {showLinkedin && (
+            <label className="review-field review-collapsed-field">
+              <span>LinkedIn profile</span>
+              <input className="field-input" type="url" inputMode="url" placeholder="https://www.linkedin.com/in/username" value={form.linkedinUrl} onChange={e => set('linkedinUrl', e.target.value)} />
+              <small>Helps others confirm they have the right manager. Your review stays anonymous.</small>
+            </label>
+          )}
+        </section>
+
+        <section className="review-form-section">
+          <div className="review-section-heading">
+            <span>Ratings</span>
+            <small>Overall is calculated from these three scores.</small>
+          </div>
+          <div className="rating-grid">
+            {[
+              ['communication', 'Communication'],
+              ['recognition', 'Support & growth'],
+              ['worklife', 'Work-life balance'],
+            ].map(([k, l]) => (
+              <div key={k} className="rating-row">
+                <span>{l} *</span>
+                <StarPicker value={form[k]} onChange={v => set(k, v)} size={25} />
               </div>
             ))}
           </div>
-          <div style={{ margin: '1.25rem 0' }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6, display: 'block' }}>
-              Their LinkedIn profile <span style={{ color: '#94a3b8', fontWeight: 500 }}>· optional</span>
-            </label>
-            <input className="field-input" type="url" inputMode="url" placeholder="https://www.linkedin.com/in/username"
-              value={form.linkedinUrl} onChange={e => set('linkedinUrl', e.target.value)} />
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Helps others confirm they have the right manager. Your review stays anonymous.</div>
+          <div className="overall-preview">
+            <span>Overall score</span>
+            <strong>{derivedOverall ? derivedOverall.toFixed(1) : '—'}</strong>
           </div>
-          <ErrorBox message={error} />
-          <button className="btn-primary" style={{ width: '100%', padding: '13px', fontSize: 14 }}
-            onClick={() => {
-              if (!form.managerName.trim() || !form.managerTitle.trim() || !form.company.trim()) {
-                setError('Please fill in the required fields.');
-                return;
-              }
-              if (!isFullPersonName(form.managerName)) {
-                setError("Please enter the manager's first and last name.");
-                return;
-              }
-              if (!looksLikeLinkedin(form.linkedinUrl)) {
-                setError('Enter a valid LinkedIn URL or leave it blank.');
-                return;
-              }
-              setError('');
-              setStep(2);
-            }}>
-            Continue →
-          </button>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div>
-          <p style={{ fontSize: 14, color: '#64748b', marginBottom: '1.5rem', lineHeight: 1.65 }}>
-            Rate <strong style={{ color: '#0f172a' }}>{form.managerName}</strong> across the areas people care about before joining a team.
-          </p>
-          {[['communication', 'Communication *'], ['recognition', 'Support & growth *'], ['worklife', 'Work-life balance *']].map(([k, l]) => (
-            <div key={k} style={{ marginBottom: '1.25rem' }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8, display: 'block' }}>{l}</label>
-              <StarPicker value={form[k]} onChange={v => set(k, v)} />
-            </div>
-          ))}
-          <div style={{ margin: '0 0 1.5rem', padding: '13px 14px', border: '1px solid #e9e3ff', borderRadius: 12, background: '#f7f3ff', color: '#4c1d95', fontSize: 13, fontWeight: 750 }}>
-            Overall score will be calculated automatically: {derivedOverall ? derivedOverall.toFixed(1) : 'rate the 3 areas first'}
-          </div>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 10, display: 'block' }}>Would you work for them again? *</label>
-            <div style={{ display: 'flex', gap: 10 }}>
-              {[[true, '👍 Yes, definitely'], [false, "👎 No, I wouldn't"]].map(([v, l]) => (
-                <button key={String(v)}
-                  style={{ flex: 1, padding: '11px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500, cursor: 'pointer', border: '1.5px solid', fontFamily: 'inherit', transition: 'all 0.15s', background: form.wouldAgain === v ? NAVY : '#f8fafc', color: form.wouldAgain === v ? '#fff' : '#374151', borderColor: form.wouldAgain === v ? NAVY : '#e5e7eb' }}
-                  onClick={() => set('wouldAgain', v)}>{l}</button>
-              ))}
-            </div>
-          </div>
-          <ErrorBox message={error} />
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn-outline" style={{ flex: 1, padding: '12px' }} onClick={() => { setError(''); setStep(1); }}>← Back</button>
-            <button className="btn-primary" style={{ flex: 2, padding: '12px' }}
-              onClick={() => { if (!step2Valid) { setError('Please complete all ratings.'); return; } setError(''); setStep(3); }}>Continue →</button>
-          </div>
-        </div>
-      )}
-
-      {step === 3 && (
-        <div>
-          <p style={{ fontSize: 14, color: '#64748b', marginBottom: '1.5rem', lineHeight: 1.65 }}>Tap a few tags, then write the useful part. Specific examples help future employees most.</p>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <TagPicker selected={form.traits} onChange={tags => set('traits', tags)} />
-          </div>
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ fontSize: 13, fontWeight: 800, color: '#374151', marginBottom: 6, display: 'block' }}>Your review *</label>
-            <textarea className="field-input" style={{ minHeight: 120, resize: 'vertical' }}
-              placeholder="What was it actually like working with this manager? Mention communication, feedback, growth, workload, or team culture."
-              value={form.reviewText} onChange={e => set('reviewText', e.target.value)} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 8, fontSize: 12, color: form.reviewText.trim().length >= 80 ? '#059669' : '#94a3b8' }}>
-              <span>Minimum 80 characters</span>
-              <span>{form.reviewText.trim().length}/80</span>
-            </div>
-          </div>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <label style={{ fontSize: 13, fontWeight: 800, color: '#374151' }}>Optional AI cleanup</label>
-              <button
-                style={{ padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: '1.5px solid', fontFamily: 'inherit', transition: 'all 0.15s', background: loadingTags ? '#f8fafc' : NAVY, color: loadingTags ? '#94a3b8' : '#fff', borderColor: loadingTags ? '#e5e7eb' : NAVY }}
-                onClick={handleGenerateTags} disabled={loadingTags}>
-                {loadingTags ? 'Generating…' : 'Suggest tags'}
-              </button>
-            </div>
-            {form.traits.length > 0
-              ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {form.traits.map((t, i) => <TraitPill key={i} tag={t.tag} sentiment={t.sentiment} onRemove={() => set('traits', form.traits.filter((_, j) => j !== i))} />)}
-                </div>
-              : <div style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic', padding: '8px 0' }}>No tags yet — generate with AI or add manually below.</div>
-            }
-            <ManualTagAdder onAdd={(tag, sentiment) => set('traits', [...form.traits, { tag, sentiment }])} />
-          </div>
-          <ErrorBox message={error} />
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn-outline" style={{ flex: 1, padding: '12px' }} onClick={() => { setError(''); setStep(2); }}>← Back</button>
-            <button className="btn-primary" style={{ flex: 2, padding: '12px' }}
-              onClick={() => { if (!step3Valid) { setError('Please write at least 80 characters so the review is useful.'); return; } setError(''); setStep(4); }}>Continue →</button>
-          </div>
-        </div>
-      )}
-
-      {step === 4 && (
-        <div>
-          <p style={{ fontSize: 14, color: '#64748b', marginBottom: '1.5rem', lineHeight: 1.65 }}>Add optional context so readers understand the review without identifying you.</p>
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6, display: 'block' }}>Your role <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional)</span></label>
-            <input className="field-input" placeholder="e.g. Software Engineer II" value={form.reviewerRole} onChange={e => set('reviewerRole', e.target.value)} />
-          </div>
-          <div className="form-two-col">
+          <div className="would-again-row">
+            <span>Would you work for them again? *</span>
             <div>
-              <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6, display: 'block' }}>Time worked together</label>
-              <select className="field-input" value={form.workedWith} onChange={e => set('workedWith', e.target.value)}>
-                <option value="">Prefer not to say</option>
-                <option value="Less than 6 months">Less than 6 months</option>
-                <option value="6-12 months">6-12 months</option>
-                <option value="1-2 years">1-2 years</option>
-                <option value="2+ years">2+ years</option>
-              </select>
-            </div>
-            <div>
-              <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6, display: 'block' }}>Employment type</label>
-              <select className="field-input" value={form.employmentType} onChange={e => set('employmentType', e.target.value)}>
-                <option value="">Prefer not to say</option>
-                <option value="Full-time">Full-time</option>
-                <option value="Part-time">Part-time</option>
-                <option value="Intern">Intern</option>
-                <option value="Contractor">Contractor</option>
-              </select>
-            </div>
-          </div>
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 8, display: 'block' }}>Status</label>
-            <div style={{ display: 'flex', gap: 10 }}>
-              {['Current employee', 'Former employee'].map(value => (
-                <button key={value} type="button" className={`context-choice ${form.employeeStatus === value ? 'context-choice-active' : ''}`} onClick={() => set('employeeStatus', value)}>
-                  {value}
+              {[[true, 'Yes'], [false, 'No']].map(([v, l]) => (
+                <button key={String(v)} type="button" className={`context-choice ${form.wouldAgain === v ? 'context-choice-active' : ''}`} onClick={() => set('wouldAgain', v)}>
+                  {l}
                 </button>
               ))}
             </div>
           </div>
-          <label className="safety-check">
-            <input type="checkbox" checked={form.safetyConfirmed} onChange={e => set('safetyConfirmed', e.target.checked)} />
-            <span>Anonymous safety check: I did not include names, private details, or anything that identifies me or coworkers.</span>
-          </label>
-          <ErrorBox message={error} />
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn-outline" style={{ flex: 1, padding: '12px' }} onClick={() => { setError(''); setStep(3); }}>← Back</button>
-            <button className="btn-gold" style={{ flex: 2, padding: '12px', borderRadius: 8 }} onClick={handleSubmit}>Submit anonymous review →</button>
+        </section>
+
+        <section className="review-form-section">
+          <div className="review-section-heading">
+            <span>Tags</span>
+            <small>Choose the patterns that fit best.</small>
           </div>
-        </div>
-      )}
+          <TagPicker selected={form.traits} onChange={tags => set('traits', tags)} max={5} />
+        </section>
+
+        <section className="review-form-section">
+          <div className="review-section-heading">
+            <span>Review</span>
+            <small>What should someone know before working with them?</small>
+          </div>
+          <textarea
+            className="field-input review-textarea"
+            placeholder="Mention communication, feedback, growth, workload, or team culture. Keep it honest and work-focused."
+            value={form.reviewText}
+            onChange={e => set('reviewText', e.target.value)}
+          />
+          <div className={`review-length ${reviewLength >= reviewMinimum ? 'review-length-ok' : ''}`}>
+            <span>Minimum {reviewMinimum} characters</span>
+            <span>{reviewLength}/{reviewMinimum}</span>
+          </div>
+        </section>
+
+        <section className="review-form-section review-optional-section">
+          <button type="button" className="review-secondary-toggle" onClick={() => setShowContext(v => !v)}>
+            {showContext ? 'Hide context' : 'Add optional context'}
+          </button>
+          {showContext && (
+            <div className="review-context-panel">
+              <label className="review-field review-field-wide">
+                <span>Your role</span>
+                <input className="field-input" placeholder="e.g. Software Engineer II" value={form.reviewerRole} onChange={e => set('reviewerRole', e.target.value)} />
+              </label>
+              <div className="form-two-col">
+                <label className="review-field">
+                  <span>Time worked together</span>
+                  <select className="field-input" value={form.workedWith} onChange={e => set('workedWith', e.target.value)}>
+                    <option value="">Prefer not to say</option>
+                    <option value="Less than 6 months">Less than 6 months</option>
+                    <option value="6-12 months">6-12 months</option>
+                    <option value="1-2 years">1-2 years</option>
+                    <option value="2+ years">2+ years</option>
+                  </select>
+                </label>
+                <label className="review-field">
+                  <span>Employment type</span>
+                  <select className="field-input" value={form.employmentType} onChange={e => set('employmentType', e.target.value)}>
+                    <option value="">Prefer not to say</option>
+                    <option value="Full-time">Full-time</option>
+                    <option value="Part-time">Part-time</option>
+                    <option value="Intern">Intern</option>
+                    <option value="Contractor">Contractor</option>
+                  </select>
+                </label>
+              </div>
+              <div className="review-field">
+                <span>Status</span>
+                <div className="review-context-choices">
+                  {['Current employee', 'Former employee'].map(value => (
+                    <button key={value} type="button" className={`context-choice ${form.employeeStatus === value ? 'context-choice-active' : ''}`} onClick={() => set('employeeStatus', value)}>
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <label className="safety-check">
+          <input type="checkbox" checked={form.safetyConfirmed} onChange={e => set('safetyConfirmed', e.target.checked)} />
+          <span>Anonymous safety check: I did not include names, private details, or anything that identifies me or coworkers.</span>
+        </label>
+        <ErrorBox message={error} />
+        <button className="btn-primary review-submit-button" onClick={handleSubmit}>Submit anonymous review</button>
+      </div>
     </div>
   );
 }
@@ -1144,7 +1127,7 @@ function Nav({ onLogoClick, onGetStarted }) {
               <span>Sign in</span>
             </button>
           )}
-          <button className="btn-primary" style={{ padding: '14px 23px', fontSize: 14 }} onClick={onGetStarted}>Write review</button>
+          <button className="btn-primary nav-write-review" onClick={onGetStarted}>Write review</button>
         </div>
       </div>
     </nav>
@@ -1185,7 +1168,7 @@ export default function App(props) {
   const [searchStage, setSearchStage] = useState(null); // null | 'loading' | 'auth' | 'gate'
   const [unlocked, setUnlocked] = useState(initialUnlocked);
   const [pendingUnlock, setPendingUnlock] = useState(false);
-  const [liveSearchers, setLiveSearchers] = useState(() => 15 + Math.floor(Math.random() * 46));
+  const [liveSearchers, setLiveSearchers] = useState(38);
   // Ids of rows that landed while this tab was open — drives the entry
   // animation and the "New" flag, and nothing else.
   const [freshIds, setFreshIds] = useState([]);
@@ -1243,6 +1226,7 @@ export default function App(props) {
 
   useEffect(() => {
     let timeoutId;
+    setLiveSearchers(15 + Math.floor(Math.random() * 46));
     const tick = () => {
       setLiveSearchers(prev => {
         const step = Math.ceil(Math.random() * 3); // 1-3

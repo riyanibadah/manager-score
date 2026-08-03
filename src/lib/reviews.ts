@@ -93,8 +93,8 @@ export function normalizeReview(input: IncomingReview) {
     throw new Error("Please enter the manager's first and last name.");
   }
 
-  if (reviewText.length < 80) {
-    throw new Error("Review must be at least 80 characters.");
+  if (reviewText.length < 60) {
+    throw new Error("Review must be at least 60 characters.");
   }
 
   const review = {
