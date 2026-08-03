@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCompanyProfile } from "../../../src/lib/public-data";
+import AdSense from "../../../src/components/AdSense";
 import CompanyLogo from "../../../src/components/CompanyLogo";
 import { companyPath, siteUrl } from "../../../src/lib/seo";
 
@@ -82,6 +83,12 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
 
   return (
     <main className="profile-page">
+      {/*
+        A company page is only worth reading once some manager under it has been
+        reviewed; before that it is a name, a logo and a roster. 164 of the 213
+        company pages are in that state, so they render no ad tag.
+      */}
+      {company.reviewCount > 0 && <AdSense />}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

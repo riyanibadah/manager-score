@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import App from "../src/App";
+import AdSense from "../src/components/AdSense";
 import { getRecentReviews } from "../src/lib/public-data";
 
 export const dynamic = "force-dynamic";
@@ -33,5 +34,15 @@ export const metadata: Metadata = {
 export default async function Home() {
   const reviews = await getRecentReviews(20);
 
-  return <App initialReviews={reviews} />;
+  return (
+    <>
+      {/*
+        The recent-reviews feed is the homepage's content. On a fresh database
+        with nothing to show it is a search box and a headline, so the ad tag
+        waits until there is a feed to sit beside.
+      */}
+      {reviews.length > 0 && <AdSense />}
+      <App initialReviews={reviews} />
+    </>
+  );
 }

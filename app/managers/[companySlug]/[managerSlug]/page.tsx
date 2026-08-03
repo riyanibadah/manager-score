@@ -7,6 +7,7 @@ import {
   hasLiveReviewForUser,
   hasLiveUnlockToken,
 } from "../../../../src/lib/public-data";
+import AdSense from "../../../../src/components/AdSense";
 import { VOTER_COOKIE, voterKeyFor } from "../../../../src/lib/votes";
 import { isVerifiedCrawler } from "../../../../src/lib/crawler";
 import { managerPath, siteUrl } from "../../../../src/lib/seo";
@@ -201,6 +202,12 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
 
   return (
     <main className="profile-page">
+      {/*
+        Ads only once this visitor can actually read the reviews. A profile with
+        none, or one still behind the wall, renders empty placeholder cards —
+        no publisher content, so no ad tag. Indexing is untouched either way.
+      */}
+      {unlocked && hasReviews && <AdSense />}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

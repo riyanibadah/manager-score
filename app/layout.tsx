@@ -54,13 +54,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7754556104842569"
-          crossOrigin="anonymous"
-        />
-      </head>
+      {/*
+        No AdSense script here. Loading it from the layout requested ads on
+        every url, including profiles with no reviews and the locked view of
+        the ones that have them — screens with no publisher content, which is
+        what the account was rejected over. Pages that have something to show
+        render <AdSense /> themselves; see src/components/AdSense.tsx.
+      */}
       <body>
         {/*
           Site-level entity markup. No SearchAction/sitelinks searchbox: search
