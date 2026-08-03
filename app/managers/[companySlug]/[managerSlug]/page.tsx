@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import {
   getManagerProfile,
+  getProfileContext,
   getVoterVotes,
   hasLiveReviewForUser,
   hasLiveUnlockToken,
@@ -126,6 +127,13 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
       )
     : {};
   const hasReviews = profile.reviewCount > 0;
+  // Whether this visitor can read this manager's reviews. When they can't —
+  // no reviews yet, or still behind the wall — the page falls back to company
+  // and role context so it isn't a bare name with a locked panel.
+  const reviewsReadable = unlocked && hasReviews;
+  const context = reviewsReadable
+    ? null
+    : await getProfileContext(companySlug, profile.id, profile.title);
   const profileScoreTone = scoreToneClass(profile.averageScore);
   const canonicalUrl = `${siteUrl()}${profile.profilePath}`;
   const reviewHref = `/?review=1&manager=${encodeURIComponent(profile.name)}&company=${encodeURIComponent(profile.company)}`;
@@ -203,11 +211,12 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
   return (
     <main className="profile-page">
       {/*
-        Ads only once this visitor can actually read the reviews. A profile with
-        none, or one still behind the wall, renders empty placeholder cards —
-        no publisher content, so no ad tag. Indexing is untouched either way.
+        Ads only where this page actually says something: the reviews are
+        readable, or the context section below stands in for them. A profile
+        with neither is a bare name, so it carries no ad tag. Indexing is
+        untouched either way — only the ad request is withheld.
       */}
-      {unlocked && hasReviews && <AdSense />}
+      {(reviewsReadable || context) && <AdSense />}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -372,6 +381,55 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
               </article>
             ))}
           </div>
+        )}
+        {/*
+          Stands in for the reviews this visitor can't read. Names, titles and
+          counts only — the same things the company page already publishes — so
+          a profile that would otherwise be a bare name has something worth
+          landing on, without spending the review text people unlock for.
+        */}
+        {context && (
+          <section className="profile-context">
+            <h2>
+              {context.peersAreSameRole && context.roleTitle
+                ? `Other ${context.roleTitle}s at ${context.companyName}`
+                : `Reviewed managers at ${context.companyName}`}
+            </h2>
+            <p className="profile-context-lede">
+              {hasReviews
+                ? `${profile.name}'s reviews are unlocked by contributing one of your own.`
+                : `No one has reviewed ${profile.name} yet.`}{" "}
+              Employees have left {context.reviewCount} anonymous review
+              {context.reviewCount === 1 ? "" : "s"} across {context.reviewedManagerCount} manager
+              {context.reviewedManagerCount === 1 ? "" : "s"} at {context.companyName}
+              {context.peersAreSameRole && context.roleTitle
+                ? `, including ${context.roleManagerCount} other ${context.roleTitle}${context.roleManagerCount === 1 ? "" : "s"}`
+                : ""}
+              .
+            </p>
+            <div className="profile-review-list">
+              {context.peers.map((peer) => (
+                <a
+                  className="profile-review-card company-manager-card"
+                  key={peer.id}
+                  href={peer.profilePath}
+                >
+                  <header>
+                    <div>
+                      <strong>{peer.name}</strong>
+                      <p>{peer.title}</p>
+                    </div>
+                    <span>
+                      {peer.reviewCount} review{peer.reviewCount === 1 ? "" : "s"}
+                    </span>
+                  </header>
+                </a>
+              ))}
+            </div>
+            <a className="profile-context-more" href={context.companyPath}>
+              See all managers at {context.companyName} →
+            </a>
+          </section>
         )}
         {/*
           data-nosnippet on the container, not the paragraph: it also covers

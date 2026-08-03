@@ -366,3 +366,79 @@ function serializeReview(review: {
 function average(values: number[]) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
 }
+
+/** How many peers to list; enough to be useful, not so many it becomes a dump. */
+const CONTEXT_PEER_LIMIT = 8;
+
+/**
+ * What a profile can say when its own reviews aren't readable — because none
+ * exist yet, or because the visitor hasn't unlocked them.
+ *
+ * Most profiles are imported and have no reviews, which left them as a name, a
+ * title and a wall. Someone arriving from a name search got nothing, and a page
+ * with nothing on it is both a poor landing and ineligible to carry ads.
+ *
+ * Deliberately limited to what company pages already publish: names, titles and
+ * review counts. No review text and no scores — those stay behind the
+ * contribution wall, so this adds substance without spending the thing people
+ * write a review to see.
+ */
+export async function getProfileContext(
+  companySlug: string,
+  managerId: string,
+  title: string | null,
+) {
+  if (!process.env.DATABASE_URL) return null;
+
+  try {
+    const company = await prisma.company.findUnique({
+      where: { slug: companySlug },
+      include: {
+        managers: {
+          where: {
+            id: { not: managerId },
+            reviews: { some: { status: "APPROVED" } },
+          },
+          include: { _count: { select: { reviews: { where: { status: "APPROVED" } } } } },
+        },
+      },
+    });
+
+    // With no reviewed colleagues there is nothing truthful to add, and an
+    // empty section is worse than none. Callers treat null as "stay quiet".
+    if (!company || !company.managers.length) return null;
+
+    const peers = company.managers
+      .map((manager) => ({
+        id: manager.id,
+        name: manager.name,
+        title: manager.title,
+        reviewCount: manager._count.reviews,
+        profilePath: managerPath(company.slug, manager.slug),
+      }))
+      .sort((a, b) => b.reviewCount - a.reviewCount || a.name.localeCompare(b.name));
+
+    // Same job title reads as far more relevant than "someone else here", so
+    // those lead. Comparison is loose because titles are free text.
+    const normalized = (title || "").trim().toLowerCase();
+    const sameRole = normalized
+      ? peers.filter((peer) => (peer.title || "").trim().toLowerCase() === normalized)
+      : [];
+
+    return {
+      companyName: company.name,
+      companyPath: companyPath(company.slug),
+      reviewedManagerCount: peers.length,
+      reviewCount: peers.reduce((sum, peer) => sum + peer.reviewCount, 0),
+      roleTitle: sameRole.length ? title : null,
+      roleManagerCount: sameRole.length,
+      roleReviewCount: sameRole.reduce((sum, peer) => sum + peer.reviewCount, 0),
+      peers: (sameRole.length ? sameRole : peers).slice(0, CONTEXT_PEER_LIMIT),
+      peersAreSameRole: sameRole.length > 0,
+    };
+  } catch (error) {
+    // Context is an enhancement; a failure here must not 404 the profile.
+    console.error("getProfileContext failed:", error);
+    return null;
+  }
+}

@@ -1488,6 +1488,32 @@ button, input, textarea, select { font: inherit; }
   margin: 0 0 16px;
   font-size: 24px;
 }
+
+/* ---- Company/role context, shown when a profile's own reviews aren't readable ---- */
+.profile-context {
+  margin-top: 34px;
+}
+.profile-context h2 {
+  margin: 0 0 10px;
+  font-size: 24px;
+}
+.profile-context-lede {
+  margin: 0 0 18px;
+  max-width: 70ch;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.7;
+}
+.profile-context-more {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--purple);
+  font-weight: 700;
+  text-decoration: none;
+}
+.profile-context-more:hover {
+  text-decoration: underline;
+}
 .profile-tags {
   display: flex;
   flex-wrap: wrap;
