@@ -279,30 +279,6 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
         </div>
       </section>
 
-      {(hasReviews || !unlocked) && (
-        <section className="profile-summary">
-          <p>
-            {hasReviews ? (
-              <>
-                {profile.reviewCount} {profile.reviewCount === 1 ? "employee has" : "employees have"} anonymously
-                reviewed {profile.name}
-                {roleAtCompany ? `, ${roleAtCompany}` : ""}, sharing feedback on communication, support for
-                growth, and work-life balance.
-              </>
-            ) : (
-              // Empty profile shown to a non-contributor: keep an indexable,
-              // non-empty summary that never states there are no reviews.
-              <>
-                Read anonymous employee feedback on {profile.name}
-                {roleAtCompany ? `, ${roleAtCompany}` : ""}, covering communication, support for growth, and
-                work-life balance.
-              </>
-            )}
-            {!unlocked && " Unlock the full ratings and review details by adding your own anonymous review."}
-          </p>
-        </section>
-      )}
-
       <section className="profile-stats profile-gated-ratings" data-nosnippet>
         {(hasReviews && unlocked
           ? [
@@ -441,6 +417,11 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
           ))}
         </div>}
       </section>
+
+      <p className="profile-seo-summary">
+        Anonymous employee reviews for {profile.name} at {profile.company} cover communication, support for
+        growth, work-life balance, and whether reviewers would work with this manager again.
+      </p>
 
       {/* This page carries ratings about a named individual, and most people
           reach it straight from a search result without ever passing the terms.

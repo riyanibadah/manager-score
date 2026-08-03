@@ -1156,8 +1156,7 @@ export default function App(props) {
   const [view, setView] = useState('home');
   const [activeKey, setActiveKey] = useState(null);
   const [prefill, setPrefill] = useState(null);
-  const [searchFirstName, setSearchFirstName] = useState('');
-  const [searchLastName, setSearchLastName] = useState('');
+  const [searchManagerName, setSearchManagerName] = useState('');
   const [searchCompany, setSearchCompany] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [companyMatch, setCompanyMatch] = useState(null);
@@ -1349,12 +1348,12 @@ export default function App(props) {
     managerMap[k].push(r);
   }
 
-  const searchName = `${searchFirstName.trim()} ${searchLastName.trim()}`.trim();
+  const searchName = searchManagerName.trim();
   const qName = searchName.toLowerCase();
   const qCompany = searchCompany.toLowerCase().trim();
   const searchNameHasFullName = isFullPersonName(searchName);
   const showSearchNameHint = Boolean(searchName.trim() && !searchNameHasFullName);
-  const canSearch = Boolean(searchFirstName.trim() && searchLastName.trim() && qCompany && searchNameHasFullName);
+  const canSearch = Boolean(searchName && qCompany && searchNameHasFullName);
   const matchedManagers = canSearch
     ? Object.entries(managerMap).filter(([, rs]) => {
         const r0 = rs[0];
@@ -1544,7 +1543,7 @@ export default function App(props) {
     return (
       <div style={{ minHeight: '100vh', background: '#f1f5f9' }}>
         <ProfileNav
-          onLogoClick={() => { setView('home'); setSearchFirstName(''); setSearchLastName(''); setSearchCompany(''); }}
+          onLogoClick={() => { setView('home'); setSearchManagerName(''); setSearchCompany(''); }}
           onBack={() => setView('home')}
           onAddReview={() => {
             const r0 = managerMap[activeKey][0];
@@ -1615,29 +1614,20 @@ export default function App(props) {
               <h1>Know your manager <span>before you join.</span></h1>
               <p>Search managers and see what employees actually think.</p>
 
-              <div className="hero-search-shell" ref={searchShellRef}>
+              <div className={`hero-search-shell${showSuggest ? ' hero-search-shell-suggesting' : ''}`} ref={searchShellRef}>
                 <div className="hero-search-wrap">
                   <Icon name="search" size={28} />
                   <input
                     className="hero-search-input hero-search-name"
-                    placeholder="First name"
-                    value={searchFirstName}
-                    onChange={e => { setSearchFirstName(e.target.value); setSuggestOpen(true); }}
+                    placeholder="Manager full name"
+                    value={searchManagerName}
+                    onChange={e => { setSearchManagerName(e.target.value); setSuggestOpen(true); }}
                     onFocus={() => setSuggestOpen(true)}
                     onKeyDown={handleSearchKeyDown}
                     role="combobox"
                     aria-expanded={showSuggest}
                     aria-controls="hero-suggest-list"
                     aria-autocomplete="list"
-                  />
-                  <span className="hero-search-divider" />
-                  <input
-                    className="hero-search-input hero-search-name"
-                    placeholder="Last name"
-                    value={searchLastName}
-                    onChange={e => { setSearchLastName(e.target.value); setSuggestOpen(true); }}
-                    onFocus={() => setSuggestOpen(true)}
-                    onKeyDown={handleSearchKeyDown}
                   />
                   <span className="hero-search-divider" />
                   <input

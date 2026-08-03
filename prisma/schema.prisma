@@ -177,6 +177,8 @@ model ReviewReport {
   reply          ReviewReply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
   reason         String
   details        String?
+  requesterName  String?
+  requesterEmail String?
   reporterIpHash String?
   status         ReportStatus @default(OPEN)
   createdAt      DateTime     @default(now())

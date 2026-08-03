@@ -23,6 +23,8 @@ export default function ReportReviewButton({
 }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [requesterName, setRequesterName] = useState("");
+  const [requesterEmail, setRequesterEmail] = useState("");
   const [details, setDetails] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
   const [error, setError] = useState("");
@@ -30,14 +32,28 @@ export default function ReportReviewButton({
   function close() {
     setOpen(false);
     setReason("");
+    setRequesterName("");
+    setRequesterEmail("");
     setDetails("");
     setStatus("idle");
     setError("");
   }
 
   async function submit() {
+    if (requesterName.trim().length < 2) {
+      setError("Please enter your name.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requesterEmail.trim())) {
+      setError("Please enter a valid email address.");
+      return;
+    }
     if (!reason) {
       setError("Please choose a reason.");
+      return;
+    }
+    if (details.trim().length < 40) {
+      setError("Please explain what is wrong and which terms or policy this review breaks.");
       return;
     }
     setStatus("submitting");
@@ -46,7 +62,7 @@ export default function ReportReviewButton({
       const res = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reviewId, replyId, reason, details }),
+        body: JSON.stringify({ reviewId, replyId, reason, requesterName, requesterEmail, details }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || "Could not submit report.");
@@ -83,10 +99,37 @@ export default function ReportReviewButton({
                   {replyId ? "Report this reply" : "Report this review"}
                 </h2>
                 <p style={{ fontSize: 13, color: "#64748b", marginBottom: 16, lineHeight: 1.6 }}>
-                  Let us know what's wrong. We'll review it and follow up if needed.
+                  Tell us who is requesting review and exactly what policy or terms issue needs moderation.
                 </p>
 
+                <div style={{ display: "grid", gap: 10, marginBottom: 14 }}>
+                  <label style={{ display: "grid", gap: 6, fontSize: 12, fontWeight: 800, color: "#334155" }}>
+                    Requested by
+                    <input
+                      className="field-input"
+                      placeholder="Your full name"
+                      value={requesterName}
+                      onChange={(e) => setRequesterName(e.target.value)}
+                      autoComplete="name"
+                    />
+                  </label>
+                  <label style={{ display: "grid", gap: 6, fontSize: 12, fontWeight: 800, color: "#334155" }}>
+                    Contact email
+                    <input
+                      className="field-input"
+                      placeholder="you@example.com"
+                      value={requesterEmail}
+                      onChange={(e) => setRequesterEmail(e.target.value)}
+                      autoComplete="email"
+                      inputMode="email"
+                    />
+                  </label>
+                </div>
+
                 <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#334155" }}>
+                    What terms or policy does this break?
+                  </div>
                   {REPORT_REASONS.map((option) => (
                     <label
                       key={option}
@@ -115,10 +158,10 @@ export default function ReportReviewButton({
 
                 <textarea
                   className="field-input"
-                  placeholder="Additional details (optional)"
+                  placeholder="Required: explain what is wrong, who is affected, and what specific terms or policy you believe this breaks."
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
-                  rows={3}
+                  rows={5}
                   style={{ resize: "vertical", marginBottom: 12 }}
                 />
 

@@ -252,6 +252,8 @@ export async function sendReportNotification(report: {
   reportId: string;
   reason: string;
   details?: string;
+  requesterName?: string;
+  requesterEmail?: string;
   managerName: string;
   company: string;
   profilePath: string;
@@ -272,6 +274,11 @@ export async function sendReportNotification(report: {
       ``,
       `Manager: ${report.managerName} (${report.company})`,
       `Profile: ${url}`,
+      report.requesterName && report.requesterEmail
+        ? `Requested by: ${report.requesterName} <${report.requesterEmail}>`
+        : report.requesterName || report.requesterEmail
+          ? `Requested by: ${report.requesterName || report.requesterEmail}`
+          : null,
       `Reason: ${report.reason}`,
       report.details ? `Details: ${report.details}` : null,
       ``,

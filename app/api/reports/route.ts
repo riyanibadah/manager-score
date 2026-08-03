@@ -23,16 +23,30 @@ export async function POST(request: Request) {
     const reviewId = typeof body?.reviewId === "string" ? body.reviewId.trim() : "";
     const replyId = typeof body?.replyId === "string" && body.replyId.trim() ? body.replyId.trim() : undefined;
     const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
+    const requesterName = typeof body?.requesterName === "string" ? body.requesterName.trim().slice(0, 120) : "";
+    const requesterEmail = typeof body?.requesterEmail === "string" ? body.requesterEmail.trim().toLowerCase().slice(0, 254) : "";
     const details =
       typeof body?.details === "string" && body.details.trim()
         ? body.details.trim().slice(0, 2000)
-        : undefined;
+        : "";
 
     if (!reviewId) {
       return NextResponse.json({ error: "Missing review." }, { status: 400 });
     }
     if (!REPORT_REASONS.includes(reason as (typeof REPORT_REASONS)[number])) {
       return NextResponse.json({ error: "Please choose a valid reason." }, { status: 400 });
+    }
+    if (requesterName.length < 2) {
+      return NextResponse.json({ error: "Please enter your name." }, { status: 400 });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requesterEmail)) {
+      return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
+    }
+    if (details.length < 40) {
+      return NextResponse.json(
+        { error: "Please explain what is wrong and which terms or policy this review breaks." },
+        { status: 400 },
+      );
     }
 
     const review = await prisma.review.findUnique({
@@ -70,13 +84,15 @@ export async function POST(request: Request) {
     }
 
     const report = await prisma.reviewReport.create({
-      data: { reviewId, replyId, reason, details, reporterIpHash },
+      data: { reviewId, replyId, reason, details, requesterName, requesterEmail, reporterIpHash },
     });
 
     await sendReportNotification({
       reportId: report.id,
       reason,
       details,
+      requesterName,
+      requesterEmail,
       managerName: review.manager.name,
       company: review.manager.company.name,
       profilePath: managerPath(review.manager.company.slug, review.manager.slug),
