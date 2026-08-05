@@ -1,4 +1,5 @@
 import { companyInitials, companyLogoSrc } from "../lib/company-logo";
+import CompanyGlyph from "./CompanyGlyph";
 
 type CompanyLogoProps = {
   name: string;
@@ -36,13 +37,17 @@ export default function CompanyLogo({ name, slug, size = 96, className }: Compan
     );
   }
 
+  // Falls back again when the name yields no initials at all, so the tile shows
+  // a mark rather than an empty box.
+  const label = companyInitials(name);
+
   return (
     <span
       className={`${classes} company-logo-fallback`}
       style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
       aria-hidden="true"
     >
-      {companyInitials(name)}
+      {label || <CompanyGlyph size={Math.round(size * 0.52)} />}
     </span>
   );
 }

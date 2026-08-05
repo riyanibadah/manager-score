@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { authClient } from "./lib/auth-client";
+import CompanyGlyph from "./components/CompanyGlyph";
 
 const NAVY = '#080b1a';
 const PURPLE = '#5b2df5';
@@ -1679,7 +1680,7 @@ export default function App(props) {
                               style={{ width: 36, height: 36, fontSize: 13 }}
                               aria-hidden="true"
                             >
-                              {manager.initials}
+                              {manager.initials || <CompanyGlyph size={19} />}
                             </span>
                           )}
                           <span className="hero-suggest-text">

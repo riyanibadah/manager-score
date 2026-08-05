@@ -36,10 +36,16 @@ export function companyLogoSrc(companySlug: string): string | null {
   return src;
 }
 
-/** "DoorDash" -> "DD", "Acme" -> "AC". Used when no logo file exists. */
+/**
+ * "DoorDash" -> "DD", "Acme" -> "AC". Used when no logo file exists.
+ *
+ * Empty for a name with nothing to take an initial from; callers render
+ * CompanyGlyph in that case rather than a literal "?", which looked like the
+ * page had failed rather than like a company.
+ */
 export function companyInitials(name: string) {
   const words = name.trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return "?";
+  if (!words.length) return "";
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return (words[0][0] + words[1][0]).toUpperCase();
 }
