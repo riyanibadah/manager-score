@@ -105,10 +105,14 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
         <div>
           <p className="profile-kicker">Company</p>
           <h1>{company.name} Manager Reviews</h1>
+          {/*
+            Manager count only. The review total is deliberately not published:
+            across most companies it is small enough that stating it advertises
+            how thin the corpus is, which discourages the contribution it is
+            trying to invite.
+          */}
           <p className="profile-subtitle">
             {company.managerCount} manager{company.managerCount === 1 ? "" : "s"} reviewed
-            {" · "}
-            {company.reviewCount} anonymous review{company.reviewCount === 1 ? "" : "s"}
           </p>
         </div>
       </section>

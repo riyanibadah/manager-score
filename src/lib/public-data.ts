@@ -408,15 +408,17 @@ export async function getProfileContext(
     // empty section is worse than none. Callers treat null as "stay quiet".
     if (!company || !company.managers.length) return null;
 
+    // Sorted by review count so the best-covered colleagues lead, but the
+    // number itself is dropped: publishing it mostly reports how few reviews
+    // exist, which discourages the contribution this section exists to invite.
     const peers = company.managers
+      .sort((a, b) => b._count.reviews - a._count.reviews || a.name.localeCompare(b.name))
       .map((manager) => ({
         id: manager.id,
         name: manager.name,
         title: manager.title,
-        reviewCount: manager._count.reviews,
         profilePath: managerPath(company.slug, manager.slug),
-      }))
-      .sort((a, b) => b.reviewCount - a.reviewCount || a.name.localeCompare(b.name));
+      }));
 
     // Same job title reads as far more relevant than "someone else here", so
     // those lead. Comparison is loose because titles are free text.
@@ -428,11 +430,7 @@ export async function getProfileContext(
     return {
       companyName: company.name,
       companyPath: companyPath(company.slug),
-      reviewedManagerCount: peers.length,
-      reviewCount: peers.reduce((sum, peer) => sum + peer.reviewCount, 0),
       roleTitle: sameRole.length ? title : null,
-      roleManagerCount: sameRole.length,
-      roleReviewCount: sameRole.reduce((sum, peer) => sum + peer.reviewCount, 0),
       peers: (sameRole.length ? sameRole : peers).slice(0, CONTEXT_PEER_LIMIT),
       peersAreSameRole: sameRole.length > 0,
     };

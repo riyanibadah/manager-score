@@ -395,17 +395,18 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
                 ? `Other ${context.roleTitle}s at ${context.companyName}`
                 : `Reviewed managers at ${context.companyName}`}
             </h2>
+            {/*
+              No counts. Saying how many reviews exist mostly reports how few
+              there are, which is the opposite of the nudge this section is for.
+              Naming the colleagues does the same work without the arithmetic.
+            */}
             <p className="profile-context-lede">
               {hasReviews
                 ? `${profile.name}'s reviews are unlocked by contributing one of your own.`
                 : `No one has reviewed ${profile.name} yet.`}{" "}
-              Employees have left {context.reviewCount} anonymous review
-              {context.reviewCount === 1 ? "" : "s"} across {context.reviewedManagerCount} manager
-              {context.reviewedManagerCount === 1 ? "" : "s"} at {context.companyName}
               {context.peersAreSameRole && context.roleTitle
-                ? `, including ${context.roleManagerCount} other ${context.roleTitle}${context.roleManagerCount === 1 ? "" : "s"}`
-                : ""}
-              .
+                ? `Employees have reviewed other ${context.roleTitle}s at ${context.companyName}.`
+                : `Employees have reviewed other managers at ${context.companyName}.`}
             </p>
             <div className="profile-review-list">
               {context.peers.map((peer) => (
@@ -419,9 +420,6 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
                       <strong>{peer.name}</strong>
                       <p>{peer.title}</p>
                     </div>
-                    <span>
-                      {peer.reviewCount} review{peer.reviewCount === 1 ? "" : "s"}
-                    </span>
                   </header>
                 </a>
               ))}
