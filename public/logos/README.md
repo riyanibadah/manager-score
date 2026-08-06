@@ -31,7 +31,21 @@ that only ships a wordmark to its monogram before adding it, the way
 `adobe.svg` is the red "A" from Simple Icons v13.0.0, the last release that
 carried it: Adobe was dropped in v14, so `simple-icons@latest` 404s on
 `icons/adobe.svg` and the master data file has no Adobe entry. Pin the version
-if you need to re-fetch it. Simple Icons doesn't publish a reason per removal,
+if you need to re-fetch it.
+
+`microsoft.svg` and `ibm.svg` came the same way, from **v12** — the last
+release carrying either. Both are absent from the current catalogue.
+
+Some companies have no mark here and are not going to get one. Capital One,
+Comcast, Bloomberg, USAA, JPMorgan Chase, PwC, Workday, EY, KPMG, Fidelity,
+Confluent and Plaid were never in Simple Icons at any version. Wikimedia
+Commons carries public-domain SVGs for several, but they are full wordmarks —
+Bloomberg's is 5.4:1 — which `object-fit: contain` shrinks to an unreadable
+sliver in a square tile, and none ship a monogram to crop down to. Searching
+Commons also turns up near misses that look right until you read the file
+name: the top hit for Capital One is `capital-one-hall-white.svg`, the
+performing arts venue. The initials tile is the better answer for these until
+someone pulls a square asset from the company's own brand kit. Simple Icons doesn't publish a reason per removal,
 but Adobe's [branding guidelines][ab] do reserve the mark, which is the same
 nominative-use question the paragraph below raises — a good one to settle before
 the logo set grows.
