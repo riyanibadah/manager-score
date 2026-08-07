@@ -38,16 +38,76 @@ export async function PATCH(request: Request, { params }: ManagerAdminRouteProps
       create: { name: companyName, slug: companySlug },
     });
 
+    const data = {
+      name,
+      slug: managerSlug,
+      title,
+      department: department || null,
+      linkedinUrl: linkedinUrl || null,
+      companyId: company.id,
+    };
+
+    // Correcting a misspelled name or company usually lands on the profile that
+    // should have been used all along — and [companyId, slug] is unique, so the
+    // plain update fails with the correct value in the box and no way forward.
+    // Two rows for one person is the actual problem, so offer to merge.
+    const clash = await prisma.manager.findUnique({
+      where: { companyId_slug: { companyId: company.id, slug: managerSlug } },
+      include: { company: true, _count: { select: { reviews: true } } },
+    });
+
+    if (clash && clash.id !== managerId) {
+      if (!body?.merge) {
+        // Reported rather than merged silently: collapsing two profiles moves
+        // reviews and deletes a row, which the admin should choose knowingly.
+        return NextResponse.json(
+          {
+            error: `A profile for ${clash.name} at ${clash.company.name} already exists.`,
+            conflict: {
+              managerId: clash.id,
+              name: clash.name,
+              company: clash.company.name,
+              reviewCount: clash._count.reviews,
+              profilePath: managerPath(clash.company.slug, clash.slug),
+            },
+          },
+          { status: 409 },
+        );
+      }
+
+      const merged = await prisma.$transaction(async (tx) => {
+        // Reviews are the only rows pointing at a manager; tags, replies,
+        // reports, votes and subscriptions all hang off the review, so moving
+        // these carries the whole thread with them.
+        await tx.review.updateMany({
+          where: { managerId },
+          data: { managerId: clash.id },
+        });
+
+        // The edited fields are what the admin just typed, so they win over
+        // whatever the surviving row held.
+        const target = await tx.manager.update({
+          where: { id: clash.id },
+          data,
+          include: { company: true },
+        });
+
+        // Safe now that nothing references it: the cascade would otherwise
+        // have taken the reviews we just moved.
+        await tx.manager.delete({ where: { id: managerId } });
+        return target;
+      });
+
+      return NextResponse.json({
+        id: merged.id,
+        merged: true,
+        profilePath: managerPath(merged.company.slug, merged.slug),
+      });
+    }
+
     const manager = await prisma.manager.update({
       where: { id: managerId },
-      data: {
-        name,
-        slug: managerSlug,
-        title,
-        department: department || null,
-        linkedinUrl: linkedinUrl || null,
-        companyId: company.id,
-      },
+      data,
       include: { company: true },
     });
 

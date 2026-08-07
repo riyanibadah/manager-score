@@ -29,16 +29,37 @@ export function AdminProfileControls({ manager }: AdminProfileControlsProps) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
-  async function save() {
+  async function save(merge = false) {
     setBusy(true);
     setStatus("");
     try {
       const res = await fetch(`/api/admin/managers/${manager.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(merge ? { ...form, merge: true } : form),
       });
       const data = await res.json().catch(() => null);
+
+      // Fixing a typo usually means the corrected profile already exists, so a
+      // clash is an offer to combine them rather than a refusal.
+      if (res.status === 409 && data?.conflict && !merge) {
+        const { name, company, reviewCount } = data.conflict;
+        const reviews = `${reviewCount} review${reviewCount === 1 ? "" : "s"}`;
+        setBusy(false);
+        if (
+          confirm(
+            `${name} at ${company} already exists with ${reviews}.\n\n` +
+              `Merge this profile into it? Reviews here move across, and this ` +
+              `duplicate is removed. This cannot be undone.`,
+          )
+        ) {
+          await save(true);
+        } else {
+          setStatus(data.error);
+        }
+        return;
+      }
+
       if (!res.ok) throw new Error(data?.error || "Could not update profile.");
       window.location.href = data.profilePath || window.location.pathname;
     } catch (error) {
@@ -113,7 +134,10 @@ export function AdminProfileControls({ manager }: AdminProfileControlsProps) {
             </div>
             {status ? <p className="admin-status">{status}</p> : null}
             <div className="admin-actions">
-              <button type="button" onClick={save} disabled={busy}>
+              {/* Wrapped, not passed directly: onClick hands the click event
+                  through as the first argument, which would arrive as a truthy
+                  `merge` and combine two profiles without ever asking. */}
+              <button type="button" onClick={() => save()} disabled={busy}>
                 {busy ? "Saving..." : "Save changes"}
               </button>
               <button type="button" className="admin-danger" onClick={deleteProfile} disabled={busy}>
