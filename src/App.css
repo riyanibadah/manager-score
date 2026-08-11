@@ -791,6 +791,11 @@ button, input, textarea, select { font: inherit; }
   gap: 24px;
   min-width: 0;
 }
+.review-person > div,
+.review-score-cell,
+.review-copy-cell {
+  min-width: 0;
+}
 .review-name {
   color: var(--ink);
   font-size: 18px;
@@ -808,6 +813,14 @@ button, input, textarea, select { font: inherit; }
   color: #536078;
   font-size: 14px;
   margin-top: 13px;
+  min-width: 0;
+}
+.review-name,
+.review-title,
+.review-company span,
+.review-copy-cell p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .company-mark {
   width: 18px;
@@ -843,6 +856,14 @@ button, input, textarea, select { font: inherit; }
   flex-wrap: wrap;
   gap: 9px;
   margin-top: 16px;
+  min-width: 0;
+}
+.trait-pill {
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 .review-copy-cell p {
   margin: 0;
@@ -1555,6 +1576,7 @@ button, input, textarea, select { font: inherit; }
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 8px 20px rgba(18, 23, 40, 0.04);
+  min-width: 0;
 }
 .profile-review-card header,
 .profile-review-card footer {
@@ -1562,6 +1584,11 @@ button, input, textarea, select { font: inherit; }
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
+  min-width: 0;
+}
+.profile-review-card header > div,
+.profile-review-meta {
+  min-width: 0;
 }
 .profile-review-card header strong {
   font-size: 16px;
@@ -1604,6 +1631,17 @@ button, input, textarea, select { font: inherit; }
   font-size: 15px;
   font-weight: 600;
   line-height: 1.7;
+}
+.profile-review-card header strong,
+.profile-review-card header p,
+.profile-review-card > p,
+.profile-review-meta span,
+.manager-card,
+.review-card,
+.company-card strong,
+.company-card small {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .profile-review-card-locked {
   position: relative;
@@ -2983,6 +3021,7 @@ button, input, textarea, select { font: inherit; }
   text-decoration: none;
   color: var(--ink);
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  min-width: 0;
 }
 .company-card:hover {
   border-color: var(--purple);

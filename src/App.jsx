@@ -22,6 +22,105 @@ const LOCAL_REVIEW_TTL_MS = 300000;
 // Left behind at submit time: the flow redirects to the manager profile, so the
 // homepage never witnesses the submission and can't flag the row on its own.
 const SUBMITTED_KEY = 'rmm_submitted_v1';
+const KNOWN_LOGO_SLUGS = new Set([
+  '3m',
+  'abbott',
+  'abbvie',
+  'accenture',
+  'adobe',
+  'airbnb',
+  'airbus',
+  'amazon',
+  'amd',
+  'american-express',
+  'apple',
+  'atlassian',
+  'baidu',
+  'bank-of-america',
+  'barclays',
+  'boeing',
+  'broadcom',
+  'bytedance',
+  'caterpillar',
+  'cisco',
+  'cloudflare',
+  'coca-cola',
+  'coinbase',
+  'databricks',
+  'dell',
+  'deloitte',
+  'deutsche-bank',
+  'dhl',
+  'doordash',
+  'dropbox',
+  'fedex',
+  'ford',
+  'goldman-sachs',
+  'google',
+  'hp',
+  'instacart',
+  'intel',
+  'intuit',
+  'lyft',
+  'mastercard',
+  'mcdonald-s',
+  'meituan',
+  'merck',
+  'meta',
+  'mongodb',
+  'netflix',
+  'nike',
+  'nvidia',
+  'oracle',
+  'palantir',
+  'palo-alto-networks',
+  'paypal',
+  'qualcomm',
+  'reddit',
+  'roblox',
+  'samsung',
+  'sap',
+  'shopify',
+  'siemens',
+  'snowflake',
+  'sony',
+  'spotify',
+  'starbucks',
+  'stripe',
+  'target',
+  'tesla',
+  'toyota',
+  'uber',
+  'ups',
+  'vercel',
+  'verizon',
+  'visa',
+  'vmware',
+  'walmart',
+  'wells-fargo',
+  'x',
+  'yelp',
+  'zoom',
+]);
+const LONG_TEXT_STRESS_REVIEW = {
+  id: 'stress-long-word-review',
+  managerName: `Buttonmash${'x'.repeat(180)}`,
+  managerTitle: `Senior ${'TitleWithoutSpaces'.repeat(24)}`,
+  company: `Company${'NoSpaces'.repeat(30)}`,
+  department: 'Mobile overflow test',
+  reviewerRole: 'QA stress tester',
+  overall: 3.0,
+  communication: 3,
+  worklife: 3,
+  recognition: 3,
+  wouldAgain: false,
+  reviewText: `This used to break mobile width: https://example.com/${'reallylongunbrokenlink'.repeat(35)}`,
+  traits: [
+    { tag: 'Mobile stress test', sentiment: 'neutral' },
+    { tag: `LongTag${'x'.repeat(80)}`, sentiment: 'neutral' },
+  ],
+  date: new Date().toISOString(),
+};
 
 const SAMPLE_REVIEWS = [
   {
@@ -313,14 +412,13 @@ function WellsFargoIcon() {
 
 /**
  * Logo from public/logos/<slug>.svg, falling back to the initial tile when no
- * file has been added. There's no manifest to keep in sync — the browser's own
- * 404 is the check, so dropping a file in is the entire install step.
+ * file has been added. The homepage is client-rendered, so it needs a tiny
+ * allowlist instead of trying every possible URL and flashing broken images.
  */
 function CompanyFileMark({ company }) {
-  const [failed, setFailed] = useState(false);
   const slug = clientSlugify(company);
 
-  if (!slug || failed) {
+  if (!slug || !KNOWN_LOGO_SLUGS.has(slug)) {
     return <span className="company-mark fallback-mark">{company[0]?.toUpperCase()}</span>;
   }
 
@@ -330,7 +428,6 @@ function CompanyFileMark({ company }) {
       src={`/logos/${slug}.svg`}
       // Decorative: the company name is rendered as text right beside it.
       alt=""
-      onError={() => setFailed(true)}
     />
   );
 }
@@ -428,7 +525,7 @@ function TraitPill({ tag, sentiment, onRemove }) {
   };
   const c = map[sentiment] || map.neutral;
   return (
-    <span style={{ background: c.bg, color: c.fg, border: `1px solid ${c.border}`, borderRadius: 20, fontSize: 12, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
+    <span className="trait-pill" style={{ background: c.bg, color: c.fg, border: `1px solid ${c.border}`, borderRadius: 20, fontSize: 12, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
       {tag}
       {onRemove && <span onClick={onRemove} style={{ cursor: 'pointer', opacity: 0.5, fontSize: 15, lineHeight: 1 }}>×</span>}
     </span>
@@ -1220,7 +1317,11 @@ export default function App(props) {
     // survives here for as long as it looks recent — the feed is the server's
     // list, plus whatever we posted that hasn't come back yet.
     const stillPending = pendingLocalReviews(loadData().reviews || [], serverFingerprints);
-    const merged = [...stillPending, ...serverReviews];
+    const stressReviews =
+      process.env.NODE_ENV !== 'production' && new URLSearchParams(window.location.search).get('stressLongReview') === '1'
+        ? [LONG_TEXT_STRESS_REVIEW]
+        : [];
+    const merged = [...stressReviews, ...stillPending, ...serverReviews];
     if (sameReviewOrder(previous, merged)) return;
 
     const knownIds = new Set(previous.map(r => r.id));
@@ -1267,7 +1368,11 @@ export default function App(props) {
     // every review this device ever wrote — including ones since deleted.
     const seenFingerprints = new Set(initialReviews.map(reviewFingerprint));
     const stillPending = pendingLocalReviews(loadData().reviews || [], seenFingerprints);
-    const seeded = [...stillPending, ...initialReviews];
+    const stressReviews =
+      process.env.NODE_ENV !== 'production' && params.get('stressLongReview') === '1'
+        ? [LONG_TEXT_STRESS_REVIEW]
+        : [];
+    const seeded = [...stressReviews, ...stillPending, ...initialReviews];
     saveData({ reviews: stillPending });
     reviewsRef.current = seeded;
     setReviews(seeded);
