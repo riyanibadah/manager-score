@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../../src/lib/prisma";
-import { canonicalManagerNameForSlug, isFullPersonName, normalizeCompanyName, slugify } from "../../../src/lib/reviews";
+import {
+  canonicalManagerNameForSlug,
+  isFullPersonName,
+  normalizeCompanyName,
+  normalizePersonName,
+  slugify,
+} from "../../../src/lib/reviews";
 import { managerPath } from "../../../src/lib/seo";
 
 export async function POST(request: Request) {
@@ -11,7 +17,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const managerName = cleanName(body?.managerName);
+    const managerName = normalizePersonName(cleanName(body?.managerName));
     const companyName = normalizeCompanyName(cleanName(body?.company));
     const companySlug = slugify(companyName);
     const managerSlug = slugify(canonicalManagerNameForSlug(managerName));

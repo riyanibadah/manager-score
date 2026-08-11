@@ -53,6 +53,15 @@ export function normalizeCompanyName(value: string) {
   return cleaned;
 }
 
+export function normalizePersonName(value: string) {
+  return value
+    .trim()
+    .replace(/\s+/g, " ")
+    .split(" ")
+    .map(formatPersonNamePart)
+    .join(" ");
+}
+
 export function canonicalManagerNameForSlug(value: string) {
   const parts = value
     .trim()
@@ -84,7 +93,7 @@ export function isFullPersonName(value: string) {
 }
 
 export function normalizeReview(input: IncomingReview) {
-  const managerName = cleanRequired(input.managerName, "Manager name");
+  const managerName = normalizePersonName(cleanRequired(input.managerName, "Manager name"));
   const managerTitle = cleanRequired(input.managerTitle, "Manager title");
   const company = normalizeCompanyName(cleanRequired(input.company, "Company"));
   const reviewText = cleanRequired(input.reviewText, "Review");
@@ -154,6 +163,24 @@ function cleanOptional(value: unknown) {
   if (typeof value !== "string") return undefined;
   const cleaned = value.trim().replace(/\s+/g, " ");
   return cleaned || undefined;
+}
+
+function formatPersonNamePart(part: string) {
+  const suffix = part.replace(/\./g, "").toLowerCase();
+  if (["jr", "sr"].includes(suffix)) return `${suffix[0].toUpperCase()}${suffix.slice(1)}.`;
+  if (["ii", "iii", "iv", "v"].includes(suffix)) return suffix.toUpperCase();
+  if (/^[A-Za-z]\.?$/.test(part)) return `${part[0].toUpperCase()}.`;
+
+  return part
+    .split(/([-'’])/)
+    .map((piece) => {
+      if (piece === "-" || piece === "'" || piece === "’") return piece;
+      if (!piece) return piece;
+      const lower = piece.toLowerCase();
+      const capped = lower.replace(/[A-Za-z]/, (letter) => letter.toUpperCase());
+      return capped.replace(/^Mc([a-z])/, (_, letter: string) => `Mc${letter.toUpperCase()}`);
+    })
+    .join("");
 }
 
 function cleanCompanyInput(value: string) {

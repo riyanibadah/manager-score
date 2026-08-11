@@ -3,7 +3,12 @@ import { Prisma } from "@prisma/client";
 import { headers } from "next/headers";
 import { requireAdmin } from "../../../../../src/lib/admin";
 import { prisma } from "../../../../../src/lib/prisma";
-import { canonicalManagerNameForSlug, normalizeCompanyName, slugify } from "../../../../../src/lib/reviews";
+import {
+  canonicalManagerNameForSlug,
+  normalizeCompanyName,
+  normalizePersonName,
+  slugify,
+} from "../../../../../src/lib/reviews";
 import { managerPath } from "../../../../../src/lib/seo";
 
 type ManagerAdminRouteProps = {
@@ -15,7 +20,7 @@ export async function PATCH(request: Request, { params }: ManagerAdminRouteProps
     await requireAdmin(await headers());
     const { managerId } = await params;
     const body = await request.json();
-    const name = clean(body?.name);
+    const name = normalizePersonName(clean(body?.name));
     const title = clean(body?.title);
     const department = clean(body?.department);
     const companyName = normalizeCompanyName(clean(body?.company));
