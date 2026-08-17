@@ -7,6 +7,7 @@ export type IncomingReview = {
   company?: string;
   department?: string;
   linkedinUrl?: string;
+  indeedUrl?: string;
   reviewerRole?: string;
   workedWith?: string;
   employmentType?: string;
@@ -112,6 +113,7 @@ export function normalizeReview(input: IncomingReview) {
     company,
     department: cleanOptional(input.department),
     linkedinUrl: cleanLinkedin(input.linkedinUrl),
+    indeedUrl: cleanIndeed(input.indeedUrl),
     reviewerRole: cleanOptional(input.reviewerRole),
     workedWith: allowedOptional(input.workedWith, [
       "Less than 6 months",
@@ -385,6 +387,75 @@ function cleanLinkedin(value: unknown) {
   const host = url.hostname.toLowerCase().replace(/^www\./, "");
   if (host !== "linkedin.com" && !host.endsWith(".linkedin.com")) {
     throw new Error("LinkedIn URL must point to linkedin.com.");
+  }
+
+  url.protocol = "https:";
+  return url.toString();
+}
+
+// Common consumer/free mailbox providers. A "work email" is defined negatively:
+// a well-formed address whose domain isn't one of these. We can't prove someone
+// still works at the reviewed company (that would need a company→domain dataset),
+// so verification means only "confirmed control of a corporate email address".
+const FREE_EMAIL_DOMAINS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "yahoo.com",
+  "ymail.com",
+  "outlook.com",
+  "hotmail.com",
+  "live.com",
+  "msn.com",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "aol.com",
+  "proton.me",
+  "protonmail.com",
+  "pm.me",
+  "gmx.com",
+  "gmx.net",
+  "mail.com",
+  "zoho.com",
+  "yandex.com",
+  "tutanota.com",
+  "hey.com",
+]);
+
+/**
+ * Returns a lowercased work email if the input is a well-formed address on a
+ * non-free domain, otherwise undefined. Non-throwing on purpose: verification is
+ * optional, so an unusable value must never block the review from being saved.
+ */
+export function normalizeWorkEmail(value: unknown): string | undefined {
+  const cleaned = cleanOptional(value);
+  if (!cleaned) return undefined;
+
+  const email = cleaned.toLowerCase();
+  // Deliberately conservative: single @, no spaces, a dotted domain.
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return undefined;
+
+  const domain = email.slice(email.lastIndexOf("@") + 1);
+  if (FREE_EMAIL_DOMAINS.has(domain)) return undefined;
+
+  return email;
+}
+
+function cleanIndeed(value: unknown) {
+  const cleaned = cleanOptional(value);
+  if (!cleaned) return undefined;
+
+  const withProtocol = /^https?:\/\//i.test(cleaned) ? cleaned : `https://${cleaned}`;
+  let url: URL;
+  try {
+    url = new URL(withProtocol);
+  } catch {
+    throw new Error("Enter a valid Indeed URL.");
+  }
+
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  if (host !== "indeed.com" && !host.endsWith(".indeed.com")) {
+    throw new Error("Indeed URL must point to indeed.com.");
   }
 
   url.protocol = "https:";

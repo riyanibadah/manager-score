@@ -638,7 +638,17 @@ function ReviewCard({ review }) {
     <div className="review-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{review.reviewerRole || 'Anonymous employee'}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{review.reviewerRole || 'Anonymous employee'}</span>
+            {review.verified && (
+              <span className="review-verified-badge" title="Reviewer confirmed a work email address">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5l-8-3zm-1.2 13.2-3.3-3.3 1.4-1.4 1.9 1.9 4.3-4.3 1.4 1.4-5.7 5.7z" />
+                </svg>
+                Verified
+              </span>
+            )}
+          </div>
           <div style={{ fontSize: 12, color: '#64748b', marginTop: 3, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <span>{new Date(review.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
             {[review.employeeStatus, review.employmentType, review.workedWith].filter(Boolean).map(item => (
@@ -804,6 +814,33 @@ function looksLikeLinkedin(value) {
   }
 }
 
+function looksLikeIndeed(value) {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return true; // optional
+  try {
+    const url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    const host = url.hostname.toLowerCase().replace(/^www\./, '');
+    return host === 'indeed.com' || host.endsWith('.indeed.com');
+  } catch {
+    return false;
+  }
+}
+
+const FREE_EMAIL_DOMAINS = new Set([
+  'gmail.com', 'googlemail.com', 'yahoo.com', 'ymail.com', 'outlook.com', 'hotmail.com',
+  'live.com', 'msn.com', 'icloud.com', 'me.com', 'mac.com', 'aol.com', 'proton.me',
+  'protonmail.com', 'pm.me', 'gmx.com', 'gmx.net', 'mail.com', 'zoho.com', 'yandex.com',
+  'tutanota.com', 'hey.com',
+]);
+
+function looksLikeWorkEmail(value) {
+  const trimmed = (value || '').trim().toLowerCase();
+  if (!trimmed) return true; // optional
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return false;
+  const domain = trimmed.slice(trimmed.lastIndexOf('@') + 1);
+  return !FREE_EMAIL_DOMAINS.has(domain);
+}
+
 function SubmitForm({ initialValues, onClose, onSubmit }) {
   const [form, setForm] = useState({
     managerName: initialValues?.managerName || '',
@@ -811,6 +848,8 @@ function SubmitForm({ initialValues, onClose, onSubmit }) {
     company: initialValues?.company || '',
     department: initialValues?.department || '',
     linkedinUrl: '',
+    indeedUrl: '',
+    workEmail: '',
     reviewerRole: '',
     workedWith: '',
     employmentType: '',
@@ -819,6 +858,8 @@ function SubmitForm({ initialValues, onClose, onSubmit }) {
     wouldAgain: null, reviewText: '', traits: [], safetyConfirmed: false,
   });
   const [showLinkedin, setShowLinkedin] = useState(false);
+  const [showIndeed, setShowIndeed] = useState(false);
+  const [showVerify, setShowVerify] = useState(false);
   const [showContext, setShowContext] = useState(false);
   const [error, setError] = useState('');
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -838,6 +879,14 @@ function SubmitForm({ initialValues, onClose, onSubmit }) {
     }
     if (!looksLikeLinkedin(form.linkedinUrl)) {
       setError('Enter a valid LinkedIn URL or leave it blank.');
+      return;
+    }
+    if (!looksLikeIndeed(form.indeedUrl)) {
+      setError('Enter a valid Indeed URL or leave it blank.');
+      return;
+    }
+    if (!looksLikeWorkEmail(form.workEmail)) {
+      setError('Enter a valid work email (not a personal one like gmail), or leave it blank.');
       return;
     }
     if (!form.communication || !form.worklife || !form.recognition || form.wouldAgain === null) {
@@ -895,6 +944,26 @@ function SubmitForm({ initialValues, onClose, onSubmit }) {
               <span>LinkedIn profile</span>
               <input className="field-input" type="url" inputMode="url" placeholder="https://www.linkedin.com/in/username" value={form.linkedinUrl} onChange={e => set('linkedinUrl', e.target.value)} />
               <small>Helps others confirm they have the right manager. Your review stays anonymous.</small>
+            </label>
+          )}
+          <button type="button" className="review-secondary-toggle" onClick={() => setShowIndeed(v => !v)}>
+            {showIndeed ? 'Hide Indeed page' : "Add company's Indeed page"}
+          </button>
+          {showIndeed && (
+            <label className="review-field review-collapsed-field">
+              <span>Company Indeed page</span>
+              <input className="field-input" type="url" inputMode="url" placeholder="https://www.indeed.com/cmp/company" value={form.indeedUrl} onChange={e => set('indeedUrl', e.target.value)} />
+              <small>We link out to Indeed for company ratings — we never copy their numbers.</small>
+            </label>
+          )}
+          <button type="button" className="review-secondary-toggle" onClick={() => setShowVerify(v => !v)}>
+            {showVerify ? 'Hide verification' : 'Verify with your work email (optional)'}
+          </button>
+          {showVerify && (
+            <label className="review-field review-collapsed-field">
+              <span>Work email</span>
+              <input className="field-input" type="email" inputMode="email" autoComplete="off" placeholder="you@company.com" value={form.workEmail} onChange={e => set('workEmail', e.target.value)} />
+              <small>Optional. We email you a link to add a <strong>Verified</strong> badge to your review. Your review stays anonymous — the address is hashed, never shown or saved in the clear.</small>
             </label>
           )}
         </section>
@@ -1425,15 +1494,18 @@ export default function App(props) {
   }, []);
 
   async function handleSubmit(review) {
-    const next = [...reviews, review];
+    // The work email is used only for the verification request; keep it out of
+    // local state and localStorage so the address never lingers on the device.
+    const { workEmail, ...localReview } = review;
+    const next = [...reviews, localReview];
     setReviews(next);
     // Only not-yet-confirmed submissions are worth persisting; the rest of the
     // feed comes from the server on every load. Writing the whole feed here is
     // what let a deleted review live on in the browser that wrote it.
-    saveData({ reviews: [...pendingLocalReviews(loadData().reviews || [], new Set()), review] });
+    saveData({ reviews: [...pendingLocalReviews(loadData().reviews || [], new Set()), localReview] });
     // So the feed can give it an entrance whenever this visit returns there.
-    rememberSubmitted(review);
-    let profilePath = profilePathForReview(review);
+    rememberSubmitted(localReview);
+    let profilePath = profilePathForReview(localReview);
     const response = await fetch('/api/reviews', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -248,6 +248,37 @@ export async function sendReplyModerationNotice(reply: {
   });
 }
 
+/**
+ * Sent to the address a reviewer optionally supplies to verify their review.
+ * The link is the only thing that flips the review to "verified", so the badge
+ * can only appear if the person actually controls that mailbox. We store just a
+ * hash of the address — this mail is the one and only place it's used in clear.
+ */
+export async function sendReviewVerification(verification: {
+  email: string;
+  verifyToken: string;
+  managerName: string;
+  company: string;
+}) {
+  const verifyUrl = `${siteUrl()}/api/reviews/verify?token=${encodeURIComponent(verification.verifyToken)}`;
+  const intro = `You asked to verify your anonymous review of ${verification.managerName} at ${verification.company} with your work email. Click below to add a "Verified" badge to it. Your review stays anonymous — the address is never shown or stored in the clear.`;
+  const footnote = "If you didn't submit this review, just ignore this email — nothing is verified unless the button above is used.";
+
+  return sendEmail({
+    to: verification.email,
+    subject: `Verify your review of ${verification.managerName} at ${verification.company}`,
+    text: [intro, ``, `Verify your review:`, verifyUrl, ``, footnote].join("\n"),
+    html: renderEmail({
+      preheader: "Confirm your work email to add a Verified badge to your review.",
+      heading: "Verify your review",
+      intro,
+      ctaLabel: "Verify my review",
+      ctaUrl: verifyUrl,
+      footnote,
+    }),
+  });
+}
+
 export async function sendReportNotification(report: {
   reportId: string;
   reason: string;

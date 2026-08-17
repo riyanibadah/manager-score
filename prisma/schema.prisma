@@ -30,6 +30,7 @@ model Company {
   id        String    @id @default(cuid())
   name      String
   slug      String    @unique
+  indeedUrl String?
   managers  Manager[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -70,6 +71,8 @@ model Review {
   submissionHash        String               @unique
   submitterIpHash       String?
   verificationEmailHash String?
+  verifyTokenHash       String?              @unique
+  emailVerifiedAt       DateTime?
   unlockTokenHash       String?              @unique
   userId                String?
   user                  User?                @relation(fields: [userId], references: [id], onDelete: SetNull)

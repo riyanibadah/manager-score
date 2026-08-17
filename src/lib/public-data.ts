@@ -87,6 +87,7 @@ export async function getManagerProfile(companySlug: string, managerSlug: string
       linkedinUrl: manager.linkedinUrl,
       company: manager.company.name,
       companySlug: manager.company.slug,
+      companyIndeedUrl: manager.company.indeedUrl,
       profilePath: managerPath(manager.company.slug, manager.slug),
       reviewCount,
       averageScore,
@@ -299,6 +300,7 @@ function serializeReview(review: {
   recognition: number;
   wouldAgain: boolean;
   reviewText: string;
+  emailVerifiedAt: Date | null;
   createdAt: Date;
   manager: {
     name: string;
@@ -344,6 +346,8 @@ function serializeReview(review: {
     recognition: review.recognition,
     wouldAgain: review.wouldAgain,
     reviewText: review.reviewText,
+    // Only the boolean crosses the boundary — never the email or its hash.
+    verified: review.emailVerifiedAt != null,
     traits: review.tags.map((tag) => ({
       tag: tag.tag,
       sentiment: tag.sentiment.toLowerCase(),

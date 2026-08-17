@@ -8,10 +8,12 @@ import {
   generateUnlockToken,
   hashValue,
   normalizeReview,
+  normalizeWorkEmail,
   slugify,
 } from "../../../src/lib/reviews";
 import { managerPath } from "../../../src/lib/seo";
 import { auth } from "../../../src/lib/auth";
+import { sendReviewVerification } from "../../../src/lib/notify";
 
 export async function GET() {
   if (!process.env.DATABASE_URL) {
@@ -61,8 +63,11 @@ export async function POST(request: Request) {
 
     const company = await prisma.company.upsert({
       where: { slug: companySlug },
-      update: { name: review.company },
-      create: { name: review.company, slug: companySlug },
+      update: {
+        name: review.company,
+        ...(review.indeedUrl ? { indeedUrl: review.indeedUrl } : {}),
+      },
+      create: { name: review.company, slug: companySlug, indeedUrl: review.indeedUrl },
     });
 
     const manager = await prisma.manager.upsert({
@@ -109,12 +114,41 @@ export async function POST(request: Request) {
       },
     });
 
+    // Optional email verification. Kept entirely off the review-creation path:
+    // the review is already saved, so a bad address or a mail failure can never
+    // block it. We store only a hash of the address; the emailed link is what
+    // actually flips the review to verified.
+    let verificationPending = false;
+    const workEmail = normalizeWorkEmail(body?.workEmail);
+    if (workEmail) {
+      try {
+        const verifyToken = generateUnlockToken();
+        await prisma.review.update({
+          where: { id: created.id },
+          data: {
+            verifyTokenHash: hashValue(verifyToken),
+            verificationEmailHash: hashValue(workEmail),
+          },
+        });
+        await sendReviewVerification({
+          email: workEmail,
+          verifyToken,
+          managerName: review.managerName,
+          company: review.company,
+        });
+        verificationPending = true;
+      } catch (verifyError) {
+        console.error("Review verification email failed:", verifyError);
+      }
+    }
+
     const response = NextResponse.json(
       {
         id: created.id,
         status: created.status,
         profilePath: managerPath(company.slug, manager.slug),
         message: "Review submitted anonymously.",
+        verificationPending,
       },
       { status: 201 },
     );
