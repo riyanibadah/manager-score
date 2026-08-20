@@ -364,6 +364,136 @@ function buildCompanyAliases(groups: string[][]) {
   return Object.freeze(aliases);
 }
 
+// Corporate email domains for companies whose employee address doesn't simply
+// mirror the company name (fb.com, not meta.com; gm.com, not generalmotors.com).
+// Keyed by the canonical company name so it composes with COMPANY_ALIASES —
+// "AWS", "Amazon.com" and "Amazon" all resolve here to amazon.com. Companies
+// whose domain *is* companyname.com don't need an entry; the fallback in
+// emailMatchesCompany handles those.
+const COMPANY_EMAIL_DOMAINS: Record<string, string[]> = buildCompanyDomains({
+  Amazon: ["amazon.com"],
+  Apple: ["apple.com"],
+  Google: ["google.com"],
+  Meta: ["meta.com", "fb.com"],
+  Microsoft: ["microsoft.com"],
+  Netflix: ["netflix.com"],
+  Nvidia: ["nvidia.com"],
+  Tesla: ["tesla.com"],
+  "JPMorgan Chase": ["jpmchase.com", "jpmorgan.com", "chase.com"],
+  "Goldman Sachs": ["gs.com"],
+  "Morgan Stanley": ["morganstanley.com"],
+  "Bank of America": ["bofa.com", "bankofamerica.com"],
+  Citi: ["citi.com"],
+  "Wells Fargo": ["wellsfargo.com"],
+  "American Express": ["aexp.com"],
+  "Charles Schwab": ["schwab.com"],
+  Fidelity: ["fmr.com", "fidelity.com"],
+  BlackRock: ["blackrock.com"],
+  Visa: ["visa.com"],
+  Mastercard: ["mastercard.com"],
+  PayPal: ["paypal.com"],
+  "Procter & Gamble": ["pg.com"],
+  "Coca-Cola": ["coca-cola.com", "cocacola.com"],
+  PepsiCo: ["pepsico.com"],
+  "Johnson & Johnson": ["jnj.com"],
+  Pfizer: ["pfizer.com"],
+  Merck: ["merck.com"],
+  "Eli Lilly": ["lilly.com"],
+  "General Motors": ["gm.com"],
+  Ford: ["ford.com"],
+  Boeing: ["boeing.com"],
+  "Lockheed Martin": ["lmco.com"],
+  "General Electric": ["ge.com"],
+  "3M": ["mmm.com"],
+  IBM: ["ibm.com"],
+  Intel: ["intel.com"],
+  "Home Depot": ["homedepot.com"],
+  "Lowe's": ["lowes.com"],
+  Walmart: ["walmart.com"],
+  Costco: ["costco.com"],
+  Target: ["target.com"],
+  Disney: ["disney.com"],
+  Comcast: ["comcast.com"],
+  "AT&T": ["att.com"],
+  Verizon: ["verizon.com"],
+  "T-Mobile": ["t-mobile.com"],
+  Salesforce: ["salesforce.com"],
+  Oracle: ["oracle.com"],
+  SAP: ["sap.com"],
+  Adobe: ["adobe.com"],
+  Cisco: ["cisco.com"],
+  Qualcomm: ["qualcomm.com"],
+  Broadcom: ["broadcom.com"],
+  Uber: ["uber.com"],
+  Lyft: ["lyft.com"],
+  Airbnb: ["airbnb.com"],
+  DoorDash: ["doordash.com"],
+  Stripe: ["stripe.com"],
+  Block: ["block.xyz", "squareup.com"],
+  Shopify: ["shopify.com"],
+  Snap: ["snap.com", "snapchat.com"],
+  Reddit: ["reddit.com"],
+  Pinterest: ["pinterest.com"],
+  Spotify: ["spotify.com"],
+  Atlassian: ["atlassian.com"],
+  Databricks: ["databricks.com"],
+  Snowflake: ["snowflake.com"],
+  Palantir: ["palantir.com"],
+  OpenAI: ["openai.com"],
+  ByteDance: ["bytedance.com", "tiktok.com"],
+  Deloitte: ["deloitte.com"],
+  PwC: ["pwc.com"],
+  EY: ["ey.com"],
+  KPMG: ["kpmg.com"],
+  McKinsey: ["mckinsey.com"],
+  Accenture: ["accenture.com"],
+  "UnitedHealth Group": ["uhg.com", "optum.com"],
+  "CVS Health": ["cvshealth.com", "cvs.com"],
+  Starbucks: ["starbucks.com"],
+  "McDonald's": ["us.mcd.com", "mcdonalds.com"],
+  Nike: ["nike.com"],
+  FedEx: ["fedex.com"],
+  UPS: ["ups.com"],
+});
+
+function buildCompanyDomains(map: Record<string, string[]>) {
+  const out: Record<string, string[]> = {};
+  for (const [name, domains] of Object.entries(map)) {
+    out[companyKey(name)] = domains.map((domain) => domain.toLowerCase());
+  }
+  return Object.freeze(out);
+}
+
+/**
+ * Whether a work-email domain belongs to the company being reviewed — the check
+ * that turns "controls a corporate mailbox" into "employee of *this* company".
+ *
+ * Curated domains win when we have them; otherwise the company's collapsed name
+ * must appear as a whole domain label (so acme.com verifies "Acme" but a random
+ * corporate address won't verify against an unrelated company). Deliberately
+ * strict: a wrong "Verified" badge is worse than a missing one.
+ */
+export function emailMatchesCompany(email: string, company: string): boolean {
+  const at = email.lastIndexOf("@");
+  if (at < 0) return false;
+  const domain = email.slice(at + 1).toLowerCase();
+  if (!domain) return false;
+
+  const key = companyKey(normalizeCompanyName(company));
+  if (!key) return false;
+
+  const known = COMPANY_EMAIL_DOMAINS[key];
+  if (known) {
+    return known.some((allowed) => domain === allowed || domain.endsWith(`.${allowed}`));
+  }
+
+  const token = key.replace(/\s+/g, "");
+  if (token.length < 3) return false;
+  // Every label except the final TLD chunk, so sub.acme.com still matches "acme".
+  const labels = domain.split(".").slice(0, -1);
+  return labels.includes(token);
+}
+
 function rating(value: unknown, label: string) {
   const numeric = Number(value);
   if (!Number.isInteger(numeric) || numeric < 1 || numeric > 5) {

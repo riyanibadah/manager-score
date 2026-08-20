@@ -5,6 +5,7 @@ import { prisma } from "../../../src/lib/prisma";
 import { getRecentReviews } from "../../../src/lib/public-data";
 import {
   canonicalManagerNameForSlug,
+  emailMatchesCompany,
   generateUnlockToken,
   hashValue,
   normalizeReview,
@@ -118,9 +119,11 @@ export async function POST(request: Request) {
     // the review is already saved, so a bad address or a mail failure can never
     // block it. We store only a hash of the address; the emailed link is what
     // actually flips the review to verified.
+    // Verify only when the work-email domain belongs to the reviewed company,
+    // so the badge means "employee of this company", not just "has a work email".
     let verificationPending = false;
     const workEmail = normalizeWorkEmail(body?.workEmail);
-    if (workEmail) {
+    if (workEmail && emailMatchesCompany(workEmail, review.company)) {
       try {
         const verifyToken = generateUnlockToken();
         await prisma.review.update({

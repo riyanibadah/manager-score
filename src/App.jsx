@@ -963,7 +963,7 @@ function SubmitForm({ initialValues, onClose, onSubmit }) {
             <label className="review-field review-collapsed-field">
               <span>Work email</span>
               <input className="field-input" type="email" inputMode="email" autoComplete="off" placeholder="you@company.com" value={form.workEmail} onChange={e => set('workEmail', e.target.value)} />
-              <small>Optional. We email you a link to add a <strong>Verified</strong> badge to your review. Your review stays anonymous — the address is hashed, never shown or saved in the clear.</small>
+              <small>Optional. Use your email at the company you're reviewing — it must match to add a <strong>Verified</strong> badge. We email you a confirmation link. Your review stays anonymous: the address is hashed, never shown or saved in the clear.</small>
             </label>
           )}
         </section>

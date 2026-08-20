@@ -79,7 +79,19 @@ export default function PrivacyPage() {
           what is collected, why, and how it's protected.
         </p>
 
-        <h3>1.5 What we do not do</h3>
+        <h3>1.5 Verifying a review with your work email (optional)</h3>
+        <p>
+          When submitting a review, you may optionally provide a work email to add a “Verified”
+          badge to that review. If you do, we send a one-time confirmation link to that address
+          through our email provider so you can confirm you control it, and we check that its
+          domain matches the company being reviewed. We store only a one-way cryptographic hash of
+          the address — never the address itself in readable form — used solely to mark the review
+          as verified and to guard against abuse. The address is never displayed publicly, never
+          attached to your identity on the Service, and never used for marketing or mailing lists.
+          Skipping verification has no effect on your ability to leave a review.
+        </p>
+
+        <h3>1.6 What we do not do</h3>
         <ul>
           <li>We do not use third-party advertising trackers or ad networks.</li>
           <li>We do not use analytics cookies or cross-site tracking technologies.</li>

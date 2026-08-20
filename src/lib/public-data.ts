@@ -87,7 +87,6 @@ export async function getManagerProfile(companySlug: string, managerSlug: string
       linkedinUrl: manager.linkedinUrl,
       company: manager.company.name,
       companySlug: manager.company.slug,
-      companyIndeedUrl: manager.company.indeedUrl,
       profilePath: managerPath(manager.company.slug, manager.slug),
       reviewCount,
       averageScore,
@@ -212,6 +211,7 @@ export async function getCompanyProfile(companySlug: string) {
     return {
       name: company.name,
       slug: company.slug,
+      indeedUrl: company.indeedUrl,
       companyPath: companyPath(company.slug),
       managerCount: managers.length,
       reviewCount: managers.reduce((sum, manager) => sum + manager.reviewCount, 0),

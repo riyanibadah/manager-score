@@ -278,20 +278,6 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
               <span>View LinkedIn profile</span>
             </a>
           )}
-          {profile.companyIndeedUrl && (
-            <a
-              className="company-indeed-link"
-              href={profile.companyIndeedUrl}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm-1-7.75a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z" />
-              </svg>
-              <span>See {profile.company} ratings on Indeed</span>
-              <span aria-hidden="true">↗</span>
-            </a>
-          )}
         </div>
         <div className="profile-side-actions">
           <div className={`profile-score ${unlocked && hasReviews ? profileScoreTone : "profile-score-empty"}`}>
