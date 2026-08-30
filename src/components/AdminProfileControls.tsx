@@ -151,7 +151,7 @@ export function AdminProfileControls({ manager }: AdminProfileControlsProps) {
   );
 }
 
-export function AdminReviewControls({ reviewId }: { reviewId: string }) {
+export function AdminReviewControls({ reviewId, verified = false }: { reviewId: string; verified?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -175,8 +175,29 @@ export function AdminReviewControls({ reviewId }: { reviewId: string }) {
     }
   }
 
+  async function toggleVerified() {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/reviews/${reviewId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ verified: !verified }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Could not update verification.");
+      window.location.reload();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update verification.");
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="admin-review-actions">
+      <button type="button" onClick={toggleVerified} disabled={busy}>
+        {verified ? "Unverify" : "Mark verified"}
+      </button>
       <button type="button" onClick={() => updateReview("PATCH")} disabled={busy}>
         Hide review
       </button>

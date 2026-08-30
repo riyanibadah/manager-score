@@ -13,6 +13,17 @@ export async function PATCH(request: Request, { params }: ReviewAdminRouteProps)
     await requireAdmin(await headers());
     const { reviewId } = await params;
     const body = await request.json().catch(() => ({}));
+
+    // Admin override for the "Verified" badge — lets a trusted review be marked
+    // verified without the work-email round-trip (and unmarked again).
+    if (typeof body?.verified === "boolean") {
+      await prisma.review.update({
+        where: { id: reviewId },
+        data: { emailVerifiedAt: body.verified ? new Date() : null },
+      });
+      return NextResponse.json({ ok: true, verified: body.verified });
+    }
+
     const status = typeof body?.status === "string" ? body.status.toUpperCase() : "HIDDEN";
 
     if (!["APPROVED", "HIDDEN", "REJECTED"].includes(status)) {

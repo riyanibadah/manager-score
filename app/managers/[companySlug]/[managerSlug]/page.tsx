@@ -508,7 +508,7 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
                   />
                   <NotifyReviewButton reviewId={review.id} sessionEmail={session?.user?.email} />
                   <ReportReviewButton reviewId={review.id} />
-                  {isAdmin && <AdminReviewControls reviewId={review.id} />}
+                  {isAdmin && <AdminReviewControls reviewId={review.id} verified={review.verified} />}
                 </div>
               </footer>
               <ReviewReplies
