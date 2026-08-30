@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { authClient } from "./lib/auth-client";
+import SiteFooter from "./components/SiteFooter";
 import CompanyGlyph from "./components/CompanyGlyph";
 
 const NAVY = '#080b1a';
@@ -1961,24 +1962,18 @@ export default function App(props) {
         </section>
       </main>
 
-      <footer className="site-footer">
-        <div className="brand">Manager<span>Score</span></div>
-        <nav>
-          <a href="#about">About</a>
-          <a href="#reviews">Contact</a>
-          <a href="/privacy">Privacy</a>
-          <a href="/terms">Terms</a>
-        </nav>
-        <div className="social-links"><span>t</span><span>in</span><span>◎</span></div>
-        {/* The feed above names real managers and scores them, so the framing
-            belongs on this page too — not only on the profiles it links to. */}
-        <p className="footer-disclaimer">
-          Reviews are the personal opinions of individual contributors, not verified statements of
-          fact, and not the views of ManagerScore. Company names and logos are trademarks of their
-          respective owners, used to identify the workplace a review refers to; ManagerScore is not
-          affiliated with or endorsed by them. See our <a href="/terms">Terms of Service</a>.
-        </p>
-      </footer>
+      {/* The feed above names real managers and scores them, so the framing
+          belongs on this page too — not only on the profiles it links to. */}
+      <SiteFooter
+        disclaimer={
+          <>
+            Reviews are the personal opinions of individual contributors, not verified statements of
+            fact, and not the views of ManagerScore. Company names and logos are trademarks of their
+            respective owners, used to identify the workplace a review refers to; ManagerScore is not
+            affiliated with or endorsed by them. See our <a href="/terms">Terms of Service</a>.
+          </>
+        }
+      />
     </div>
   );
 }

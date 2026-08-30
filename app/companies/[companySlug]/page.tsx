@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getCompanyProfile } from "../../../src/lib/public-data";
 import AdSense from "../../../src/components/AdSense";
 import CompanyLogo from "../../../src/components/CompanyLogo";
+import SiteFooter from "../../../src/components/SiteFooter";
 import { companyPath, siteUrl } from "../../../src/lib/seo";
 
 type CompanyPageProps = {
@@ -192,6 +193,8 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
           a review refers to. See our <a href="/terms">Terms of Service</a>.
         </p>
       </section>
+
+      <SiteFooter />
     </main>
   );
 }

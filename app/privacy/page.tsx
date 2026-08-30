@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { siteUrl } from "../../src/lib/seo";
+import SiteFooter from "../../src/components/SiteFooter";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | ManagerScore",
@@ -205,14 +206,7 @@ export default function PrivacyPage() {
         </p>
       </article>
 
-      <footer className="legal-footer">
-        <span>© {new Date().getFullYear()} ManagerScore. All rights reserved.</span>
-        <nav>
-          <a href="/privacy">Privacy</a>
-          <a href="/terms">Terms</a>
-          <a href="/">Home</a>
-        </nav>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }

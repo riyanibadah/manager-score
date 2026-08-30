@@ -20,6 +20,7 @@ import VoteButtons from "../../../../src/components/VoteButtons";
 import NotifyReviewButton from "../../../../src/components/NotifyReviewButton";
 import ManagerFollowButton from "../../../../src/components/ManagerFollowButton";
 import ReviewReplies from "../../../../src/components/ReviewReplies";
+import SiteFooter from "../../../../src/components/SiteFooter";
 import { adminEmails } from "../../../../src/lib/admin";
 import { AdminProfileControls, AdminReviewControls } from "../../../../src/components/AdminProfileControls";
 
@@ -552,6 +553,8 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
           <a href="/terms">our moderation and removal policy</a>.
         </p>
       </section>
+
+      <SiteFooter />
     </main>
   );
 }
