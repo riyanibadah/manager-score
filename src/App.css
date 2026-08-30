@@ -385,6 +385,49 @@ button, input, textarea, select { font: inherit; }
   display: block;
 }
 
+.manager-follow {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+.manager-follow-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 1px solid #d8cef9;
+  border-radius: 999px;
+  background: #f8f4ff;
+  color: var(--purple);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s, background 0.15s;
+}
+.manager-follow-btn:hover:not(:disabled) {
+  border-color: #bca8fb;
+  box-shadow: 0 8px 20px rgba(91, 45, 245, 0.12);
+  transform: translateY(-1px);
+}
+.manager-follow-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.manager-follow-btn.is-following {
+  background: linear-gradient(135deg, var(--purple), #682df4);
+  border-color: transparent;
+  color: #fff;
+}
+.manager-follow-btn svg {
+  display: block;
+}
+.manager-follow-error {
+  font-size: 12px;
+  color: #dc2626;
+}
+
 .btn-primary {
   background: linear-gradient(135deg, var(--purple), #682df4);
   color: #fff;

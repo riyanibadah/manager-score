@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "../../../src/lib/prisma";
 import { hashRequestIp } from "../../../src/lib/reviews";
 import { auth } from "../../../src/lib/auth";
+import { notifyReviewLiked } from "../../../src/lib/account-notify";
 import {
   VOTER_COOKIE,
   VOTER_COOKIE_MAX_AGE,
@@ -85,6 +86,12 @@ export async function POST(request: Request) {
         if (reviewId) await tx.review.update({ where: { id: reviewId }, data });
         else await tx.reviewReply.update({ where: { id: replyId! }, data });
       });
+
+      // Only a fresh upvote on a review notifies its author (throttled and
+      // opt-out-gated inside). Never blocks the vote from being recorded.
+      if (reviewId && value === 1 && previousValue !== 1) {
+        await notifyReviewLiked(reviewId, session?.user?.id);
+      }
     }
 
     const totals = reviewId

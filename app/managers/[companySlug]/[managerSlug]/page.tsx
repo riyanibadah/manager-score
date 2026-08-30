@@ -18,6 +18,7 @@ import ReportReviewButton from "../../../../src/components/ReportReviewButton";
 import ShareReviewButton from "../../../../src/components/ShareReviewButton";
 import VoteButtons from "../../../../src/components/VoteButtons";
 import NotifyReviewButton from "../../../../src/components/NotifyReviewButton";
+import ManagerFollowButton from "../../../../src/components/ManagerFollowButton";
 import ReviewReplies from "../../../../src/components/ReviewReplies";
 import { adminEmails } from "../../../../src/lib/admin";
 import { AdminProfileControls, AdminReviewControls } from "../../../../src/components/AdminProfileControls";
@@ -127,6 +128,16 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
       )
     : {};
   const hasReviews = profile.reviewCount > 0;
+  const isFollowingManager = session?.user?.id
+    ? Boolean(
+        await prisma.managerFollow
+          .findUnique({
+            where: { userId_managerId: { userId: session.user.id, managerId: profile.id } },
+            select: { id: true },
+          })
+          .catch(() => null),
+      )
+    : false;
   // Whether this visitor can read this manager's reviews. When they can't —
   // no reviews yet, or still behind the wall — the page falls back to company
   // and role context so it isn't a bare name with a locked panel.
@@ -278,6 +289,11 @@ export default async function ManagerPage({ params }: ManagerPageProps) {
               <span>View LinkedIn profile</span>
             </a>
           )}
+          <ManagerFollowButton
+            managerId={profile.id}
+            initialFollowing={isFollowingManager}
+            signedIn={Boolean(session?.user?.id)}
+          />
         </div>
         <div className="profile-side-actions">
           <div className={`profile-score ${unlocked && hasReviews ? profileScoreTone : "profile-score-empty"}`}>

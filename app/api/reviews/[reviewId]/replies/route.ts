@@ -4,6 +4,7 @@ import { prisma } from "../../../../../src/lib/prisma";
 import { hashRequestIp, hashValue } from "../../../../../src/lib/reviews";
 import { normalizeReply } from "../../../../../src/lib/replies";
 import { sendReplyModerationNotice, sendReplyNotification } from "../../../../../src/lib/notify";
+import { notifyReviewReplied } from "../../../../../src/lib/account-notify";
 import { managerPath, siteUrl } from "../../../../../src/lib/seo";
 import { auth } from "../../../../../src/lib/auth";
 
@@ -81,6 +82,9 @@ export async function POST(request: Request, { params }: ReplyRouteProps) {
         company: review.manager.company.name,
         profilePath,
       }),
+      // The review's own author, at their login address (if they were signed in
+      // when they wrote it, aren't the one replying, and haven't opted out).
+      notifyReviewReplied(reviewId, created.userId ?? undefined),
     ]);
 
     return NextResponse.json(

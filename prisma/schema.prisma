@@ -46,6 +46,7 @@ model Manager {
   companyId   String
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   reviews     Review[]
+  follows     ManagerFollow[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -73,6 +74,8 @@ model Review {
   verificationEmailHash String?
   verifyTokenHash       String?              @unique
   emailVerifiedAt       DateTime?
+  // Throttle marker for "your review got likes" mail: at most one per day.
+  likeNotifiedAt        DateTime?
   unlockTokenHash       String?              @unique
   userId                String?
   user                  User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -202,9 +205,29 @@ model User {
   unlock        UserUnlock?
   reviews       Review[]
   replies       ReviewReply[]
+  managerFollows ManagerFollow[]
+  // Per-category opt-outs for account email notifications. Default on; each
+  // notification email carries a one-click unsubscribe that flips one of these.
+  // notifyToken is the stable secret those unsubscribe links are built from.
+  notifyToken      String?  @unique
+  notifyLikes      Boolean  @default(true)
+  notifyReplies    Boolean  @default(true)
+  notifyNewReviews Boolean  @default(true)
 
   @@unique([email])
   @@map("user")
+}
+
+model ManagerFollow {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  managerId String
+  manager   Manager  @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, managerId])
+  @@index([managerId])
 }
 
 model Session {

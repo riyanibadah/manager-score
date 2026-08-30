@@ -15,6 +15,7 @@ import {
 import { managerPath } from "../../../src/lib/seo";
 import { auth } from "../../../src/lib/auth";
 import { sendReviewVerification } from "../../../src/lib/notify";
+import { notifyNewManagerReview } from "../../../src/lib/account-notify";
 
 export async function GET() {
   if (!process.env.DATABASE_URL) {
@@ -144,6 +145,18 @@ export async function POST(request: Request) {
         console.error("Review verification email failed:", verifyError);
       }
     }
+
+    // Tell everyone connected to this manager (prior signed-in reviewers and
+    // "Notify me" followers) that a new review landed. Self-swallowing; a mail
+    // problem can never fail the submission.
+    await notifyNewManagerReview({
+      managerId: manager.id,
+      managerName: review.managerName,
+      companyName: review.company,
+      companySlug: company.slug,
+      managerSlug: manager.slug,
+      authorUserId: session?.user?.id,
+    });
 
     const response = NextResponse.json(
       {

@@ -1,7 +1,7 @@
 import { siteUrl } from "./seo";
 import { escapeHtml } from "./html";
 
-const REPORT_NOTIFICATION_EMAIL = "sharkawykyrillos@gmail.com";
+const REPORT_NOTIFICATION_EMAIL = "managerscoreio@gmail.com";
 
 function senderAddress() {
   return process.env.REPORT_NOTIFICATION_FROM || "ManagerScore <onboarding@resend.dev>";
@@ -275,6 +275,84 @@ export async function sendReviewVerification(verification: {
       ctaLabel: "Verify my review",
       ctaUrl: verifyUrl,
       footnote,
+    }),
+  });
+}
+
+/**
+ * Account notifications (like / reply-to-your-review / new review on a manager
+ * you follow or reviewed). These go to the address a user signed in with, which
+ * is already provider-verified, so no confirmation step is needed. Every one
+ * carries a one-click unsubscribe that turns off that category for the user.
+ */
+export async function sendLikeNotification(n: {
+  email: string;
+  unsubscribeUrl: string;
+  managerName: string;
+  company: string;
+  reviewUrl: string;
+}) {
+  const intro = `Someone found your anonymous review of ${n.managerName} at ${n.company} helpful.`;
+  return sendEmail({
+    to: n.email,
+    subject: `Someone liked your review of ${n.managerName}`,
+    text: [intro, ``, `See your review: ${n.reviewUrl}`, ``, `Turn off like emails: ${n.unsubscribeUrl}`].join("\n"),
+    html: renderEmail({
+      preheader: "Your review is getting appreciated.",
+      heading: "Someone liked your review",
+      intro,
+      ctaLabel: "See your review",
+      ctaUrl: n.reviewUrl,
+      footerLinkUrl: n.unsubscribeUrl,
+      footerLinkLabel: "Turn off like emails",
+    }),
+  });
+}
+
+export async function sendReplyToAuthorNotification(n: {
+  email: string;
+  unsubscribeUrl: string;
+  managerName: string;
+  company: string;
+  reviewUrl: string;
+}) {
+  const intro = `Someone replied to your anonymous review of ${n.managerName} at ${n.company}. Open it to read the reply in the thread.`;
+  return sendEmail({
+    to: n.email,
+    subject: `New reply to your review of ${n.managerName}`,
+    text: [intro, ``, `Read the reply: ${n.reviewUrl}`, ``, `Turn off reply emails: ${n.unsubscribeUrl}`].join("\n"),
+    html: renderEmail({
+      preheader: "There's a new reply on your review.",
+      heading: "Someone replied to your review",
+      intro,
+      ctaLabel: "Read the reply",
+      ctaUrl: n.reviewUrl,
+      footerLinkUrl: n.unsubscribeUrl,
+      footerLinkLabel: "Turn off reply emails",
+    }),
+  });
+}
+
+export async function sendNewReviewNotification(n: {
+  email: string;
+  unsubscribeUrl: string;
+  managerName: string;
+  company: string;
+  reviewUrl: string;
+}) {
+  const intro = `A new anonymous review was just posted for ${n.managerName} at ${n.company} — a manager you follow or have reviewed.`;
+  return sendEmail({
+    to: n.email,
+    subject: `New review posted for ${n.managerName} at ${n.company}`,
+    text: [intro, ``, `See the profile: ${n.reviewUrl}`, ``, `Turn off these emails: ${n.unsubscribeUrl}`].join("\n"),
+    html: renderEmail({
+      preheader: `New review for ${n.managerName}.`,
+      heading: "A new review was posted",
+      intro,
+      ctaLabel: "Open the profile",
+      ctaUrl: n.reviewUrl,
+      footerLinkUrl: n.unsubscribeUrl,
+      footerLinkLabel: "Turn off new-review emails",
     }),
   });
 }
