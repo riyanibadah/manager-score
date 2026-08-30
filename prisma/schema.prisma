@@ -284,3 +284,19 @@ model UserUnlock {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
+
+// First-party, privacy-safe traffic log for the admin dashboard. No cookies, no
+// IP, no user id — only which path was viewed and a coarse referral source.
+// Nothing here identifies a visitor; it exists purely to count views by source.
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  // Coarse bucket: direct | search | social | referral | internal
+  source    String
+  // Referrer host only (e.g. "news.ycombinator.com"), never a full URL.
+  referrer  String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([source])
+}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { siteUrl } from "../src/lib/seo";
+import PageViewTracker from "../src/components/PageViewTracker";
 import "../src/App.css";
 
 const SITE_NAME = "ManagerScore";
@@ -95,6 +96,7 @@ export default function RootLayout({
         />
         {children}
         <Analytics />
+        <PageViewTracker />
       </body>
     </html>
   );

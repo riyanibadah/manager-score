@@ -1245,6 +1245,19 @@ function Nav({ onLogoClick, onGetStarted }) {
           .map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
       : 'there');
   const [accountOpen, setAccountOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Ask the server whether this account is an admin. The admin list never leaves
+  // the server; this only ever tells the client about its own status.
+  useEffect(() => {
+    if (!email) { setIsAdmin(false); return; }
+    let active = true;
+    fetch('/api/admin/me')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (active) setIsAdmin(Boolean(data?.isAdmin)); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [email]);
 
   async function handleSignIn() {
     const hasGoogleConfig = await fetch('/api/auth/ready')
@@ -1295,6 +1308,9 @@ function Nav({ onLogoClick, onGetStarted }) {
                     </div>
                   </div>
                   <div className="account-menu-divider" />
+                  {isAdmin ? (
+                    <a className="account-menu-item" href="/admin">Admin dashboard</a>
+                  ) : null}
                   <button onClick={handleSignOut}>Sign out</button>
                 </div>
               ) : null}
