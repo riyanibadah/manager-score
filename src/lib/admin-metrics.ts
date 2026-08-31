@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { managerPath } from "./seo";
 
 const SEARCH_HOSTS = ["google.", "bing.", "duckduckgo.", "yahoo.", "ecosia.", "yandex.", "baidu.", "brave."];
 const SOCIAL_HOSTS = [
@@ -94,21 +95,33 @@ export type AdminMetrics = Awaited<ReturnType<typeof getAdminMetrics>>;
  * Every figure the dashboard shows. All counts run in parallel; any DB error
  * degrades the whole thing to zeros rather than 500-ing the admin page.
  */
-export async function getAdminMetrics() {
-  const day7 = since(7);
-  const day30 = since(30);
+export const RANGE_DAYS = [7, 30, 90, null] as const;
+export type RangeDays = (typeof RANGE_DAYS)[number];
+
+export function rangeLabel(days: number | null) {
+  if (!days) return "All time";
+  if (days === 1) return "Today";
+  return `Last ${days} days`;
+}
+
+/**
+ * `days` scopes the *activity* figures (reviews, comments, engagement, traffic,
+ * charts) to a window; null means all time. State figures that aren't a flow —
+ * the catalog size and the open-report queue — are always current, since "how
+ * many managers in the last 7 days" isn't the question those answer.
+ */
+export async function getAdminMetrics(days: number | null = null) {
+  const from = days ? since(days) : null;
+  // Spread into a `where` to scope by creation time; empty when all-time.
+  const tf = from ? { createdAt: { gte: from } } : {};
 
   try {
     const [
       reviewsTotal,
       reviewsApproved,
       reviewsVerified,
-      reviews7,
-      reviews30,
       comments,
-      comments7,
       reportsOpen,
-      reportsTotal,
       managers,
       companies,
       users,
@@ -117,47 +130,42 @@ export async function getAdminMetrics() {
       subscriptions,
       hiddenReviews,
       pageViewsTotal,
-      pageViews7,
       viewsBySource,
       topPathsRaw,
       topReferrersRaw,
       topManagersRaw,
     ] = await Promise.all([
-      prisma.review.count(),
-      prisma.review.count({ where: { status: "APPROVED" } }),
-      prisma.review.count({ where: { emailVerifiedAt: { not: null } } }),
-      prisma.review.count({ where: { createdAt: { gte: day7 } } }),
-      prisma.review.count({ where: { createdAt: { gte: day30 } } }),
-      prisma.reviewReply.count(),
-      prisma.reviewReply.count({ where: { createdAt: { gte: day7 } } }),
+      prisma.review.count({ where: { ...tf } }),
+      prisma.review.count({ where: { status: "APPROVED", ...tf } }),
+      prisma.review.count({ where: { emailVerifiedAt: { not: null }, ...tf } }),
+      prisma.reviewReply.count({ where: { ...tf } }),
       prisma.reviewReport.count({ where: { status: "OPEN" } }),
-      prisma.reviewReport.count(),
       prisma.manager.count(),
       prisma.company.count(),
       prisma.user.count(),
-      prisma.reviewVote.count({ where: { value: 1 } }),
-      prisma.managerFollow.count(),
-      prisma.reviewSubscription.count({ where: { confirmedAt: { not: null } } }),
+      prisma.reviewVote.count({ where: { value: 1, ...tf } }),
+      prisma.managerFollow.count({ where: { ...tf } }),
+      prisma.reviewSubscription.count({ where: { confirmedAt: { not: null }, ...tf } }),
       prisma.review.count({ where: { status: "HIDDEN" } }),
-      prisma.pageView.count(),
-      prisma.pageView.count({ where: { createdAt: { gte: day7 } } }),
-      prisma.pageView.groupBy({ by: ["source"], _count: { _all: true } }),
+      prisma.pageView.count({ where: { ...tf } }),
+      prisma.pageView.groupBy({ by: ["source"], where: { ...tf }, _count: { _all: true } }),
       prisma.pageView.groupBy({
         by: ["path"],
+        where: { ...tf },
         _count: { _all: true },
         orderBy: { _count: { path: "desc" } },
         take: 8,
       }),
       prisma.pageView.groupBy({
         by: ["referrer"],
-        where: { referrer: { not: null } },
+        where: { referrer: { not: null }, ...tf },
         _count: { _all: true },
         orderBy: { _count: { referrer: "desc" } },
         take: 8,
       }),
       prisma.review.groupBy({
         by: ["managerId"],
-        where: { status: "APPROVED" },
+        where: { status: "APPROVED", ...tf },
         _count: { _all: true },
         orderBy: { _count: { managerId: "desc" } },
         take: 8,
@@ -177,18 +185,19 @@ export async function getAdminMetrics() {
       })
       .filter((row): row is { name: string; company: string; count: number } => Boolean(row));
 
-    const series = await buildDailySeries(14);
+    // Chart window follows the range; capped so all-time stays a readable line.
+    const series = await buildDailySeries(Math.min(days ?? 30, 90));
 
     return {
+      range: { days, label: rangeLabel(days) },
       series,
-      reviews: { total: reviewsTotal, approved: reviewsApproved, verified: reviewsVerified, last7: reviews7, last30: reviews30, hidden: hiddenReviews },
-      comments: { total: comments, last7: comments7 },
-      reports: { open: reportsOpen, total: reportsTotal },
+      reviews: { total: reviewsTotal, approved: reviewsApproved, verified: reviewsVerified, hidden: hiddenReviews },
+      comments: { total: comments },
+      reports: { open: reportsOpen },
       catalog: { managers, companies, users },
       engagement: { likes, follows, subscriptions },
       traffic: {
         total: pageViewsTotal,
-        last7: pageViews7,
         bySource: viewsBySource
           .map((row) => ({ source: row.source, count: row._count._all }))
           .sort((a, b) => b.count - a.count),
@@ -201,15 +210,56 @@ export async function getAdminMetrics() {
   } catch (error) {
     console.error("getAdminMetrics failed:", error);
     return {
+      range: { days, label: rangeLabel(days) },
       series: [] as DayPoint[],
-      reviews: { total: 0, approved: 0, verified: 0, last7: 0, last30: 0, hidden: 0 },
-      comments: { total: 0, last7: 0 },
-      reports: { open: 0, total: 0 },
+      reviews: { total: 0, approved: 0, verified: 0, hidden: 0 },
+      comments: { total: 0 },
+      reports: { open: 0 },
       catalog: { managers: 0, companies: 0, users: 0 },
       engagement: { likes: 0, follows: 0, subscriptions: 0 },
-      traffic: { total: 0, last7: 0, bySource: [], topPaths: [], topReferrers: [] },
+      traffic: { total: 0, bySource: [], topPaths: [], topReferrers: [] },
       topManagers: [],
       ok: false as const,
     };
+  }
+}
+
+export type OpenReport = Awaited<ReturnType<typeof getOpenReports>>[number];
+
+/**
+ * The open moderation queue for the /admin/reports page: each open report with
+ * the content it targets (review text or reply body) and the profile it lives
+ * on, so an admin can read and act without hunting for it.
+ */
+export async function getOpenReports() {
+  try {
+    const reports = await prisma.reviewReport.findMany({
+      where: { status: "OPEN" },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: {
+        review: { include: { manager: { include: { company: true } } } },
+        reply: true,
+      },
+    });
+
+    return reports.map((r) => ({
+      id: r.id,
+      reason: r.reason,
+      details: r.details,
+      requesterName: r.requesterName,
+      requesterEmail: r.requesterEmail,
+      createdAt: r.createdAt.toISOString(),
+      target: r.replyId ? ("reply" as const) : ("review" as const),
+      reviewId: r.reviewId,
+      replyId: r.replyId,
+      content: r.reply ? r.reply.body : r.review.reviewText,
+      managerName: r.review.manager.name,
+      company: r.review.manager.company.name,
+      profilePath: managerPath(r.review.manager.company.slug, r.review.manager.slug),
+    }));
+  } catch (error) {
+    console.error("getOpenReports failed:", error);
+    return [];
   }
 }

@@ -18,6 +18,13 @@ const C_REVIEWS = "#2a78d6";
 const C_COMMENTS = "#eb6834";
 const C_VIEWS = "#5b2df5";
 
+const RANGES: { days: number | null; label: string }[] = [
+  { days: 7, label: "7d" },
+  { days: 30, label: "30d" },
+  { days: 90, label: "90d" },
+  { days: null, label: "All" },
+];
+
 export default function AdminDashboard({
   metrics,
   email,
@@ -27,9 +34,27 @@ export default function AdminDashboard({
   email: string;
   vercelUrl: string;
 }) {
-  const m = metrics;
+  const [m, setM] = useState(metrics);
+  const [days, setDays] = useState<number | null>(metrics.range.days);
+  const [loading, setLoading] = useState(false);
+
+  async function selectRange(next: number | null) {
+    if (next === days || loading) return;
+    setDays(next);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/metrics?days=${next === null ? "all" : next}`);
+      if (res.ok) setM(await res.json());
+    } catch {
+      /* keep the last good numbers on failure */
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const labels = m.series.map((d) => d.date);
   const maxSource = Math.max(1, ...m.traffic.bySource.map((s) => s.count));
+  const rangeLabel = m.range.label;
 
   return (
     <main className="admin-dash">
@@ -45,138 +70,163 @@ export default function AdminDashboard({
       </nav>
 
       <header className="admin-dash-head">
-        <h1>Dashboard</h1>
-        <p>
-          Signed in as {email}.{m.ok ? "" : " Some metrics failed to load — showing what we could."}
-        </p>
+        <div>
+          <h1>Dashboard</h1>
+          <p>
+            Signed in as {email}.{m.ok ? "" : " Some metrics failed to load — showing what we could."}
+          </p>
+        </div>
+        <div className="admin-range" role="group" aria-label="Date range">
+          {RANGES.map((r) => (
+            <button
+              key={r.label}
+              type="button"
+              className={`admin-range-btn${r.days === days ? " is-active" : ""}`}
+              onClick={() => selectRange(r.days)}
+              disabled={loading}
+              aria-pressed={r.days === days}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
       </header>
 
-      <section className="admin-stat-grid">
-        <StatCard icon={<IconStar />} label="Approved reviews" value={m.reviews.approved} sub={`${m.reviews.last7} in last 7 days`} accent={C_REVIEWS} />
-        <StatCard icon={<IconChat />} label="Comments" value={m.comments.total} sub={`${m.comments.last7} in last 7 days`} accent={C_COMMENTS} />
-        <StatCard icon={<IconFlag />} label="Open reports" value={m.reports.open} sub={`${m.reports.total} all time`} tone={m.reports.open > 0 ? "warn" : undefined} accent="#d03b3b" />
-        <StatCard icon={<IconEye />} label="Page views (7d)" value={m.traffic.last7} sub={`${m.traffic.total} all time`} accent={C_VIEWS} />
-      </section>
-
-      <section className="admin-chart-grid">
-        <div className="admin-panel-card">
-          <TrendChart
-            title="Reviews & comments per day"
-            labels={labels}
-            series={[
-              { label: "Reviews", color: C_REVIEWS, values: m.series.map((d) => d.reviews) },
-              { label: "Comments", color: C_COMMENTS, values: m.series.map((d) => d.comments) },
-            ]}
+      <div className={`admin-dash-body${loading ? " is-loading" : ""}`}>
+        <section className="admin-stat-grid">
+          <StatCard icon={<IconStar />} label="Approved reviews" value={m.reviews.approved} sub={rangeLabel} accent={C_REVIEWS} />
+          <StatCard icon={<IconChat />} label="Comments" value={m.comments.total} sub={rangeLabel} accent={C_COMMENTS} />
+          <StatCard
+            icon={<IconFlag />}
+            label="Open reports"
+            value={m.reports.open}
+            sub="In the queue — click to review"
+            tone={m.reports.open > 0 ? "warn" : undefined}
+            accent="#d03b3b"
+            href="/admin/reports"
           />
-        </div>
-        <div className="admin-panel-card">
-          <TrendChart
-            title="Page views per day"
-            labels={labels}
-            series={[{ label: "Views", color: C_VIEWS, values: m.series.map((d) => d.views) }]}
-          />
-        </div>
-      </section>
+          <StatCard icon={<IconEye />} label="Page views" value={m.traffic.total} sub={rangeLabel} accent={C_VIEWS} />
+        </section>
 
-      <section className="admin-panel-card">
-        <div className="admin-panel-head">
-          <h2>Traffic &amp; sources</h2>
-          <a className="btn-outline-dark" href={vercelUrl} target="_blank" rel="noopener noreferrer">
-            Open Vercel Analytics ↗
-          </a>
-        </div>
-        {m.traffic.total === 0 ? (
-          <p className="admin-empty">
-            No first-party pageviews recorded yet — they start accruing once this is live. Vercel
-            Analytics has your full history and sources in the meantime.
-          </p>
-        ) : (
-          <div className="admin-two-col">
-            <div>
-              <h3>By source</h3>
-              <ul className="admin-bar-list">
-                {m.traffic.bySource.map((s) => (
-                  <li key={s.source}>
-                    <span className="admin-bar-label">{SOURCE_LABELS[s.source] || s.source}</span>
-                    <span className="admin-bar">
-                      <span style={{ width: `${(s.count / maxSource) * 100}%` }} />
-                    </span>
-                    <strong>{s.count.toLocaleString()}</strong>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3>Top referrers</h3>
-              {m.traffic.topReferrers.length ? (
-                <ul className="admin-list">
-                  {m.traffic.topReferrers.map((r) => (
-                    <li key={r.host}>
-                      <span>{r.host}</span>
-                      <strong>{r.count.toLocaleString()}</strong>
+        <section className="admin-chart-grid">
+          <div className="admin-panel-card">
+            <TrendChart
+              title="Reviews & comments per day"
+              labels={labels}
+              series={[
+                { label: "Reviews", color: C_REVIEWS, values: m.series.map((d) => d.reviews) },
+                { label: "Comments", color: C_COMMENTS, values: m.series.map((d) => d.comments) },
+              ]}
+            />
+          </div>
+          <div className="admin-panel-card">
+            <TrendChart
+              title="Page views per day"
+              labels={labels}
+              series={[{ label: "Views", color: C_VIEWS, values: m.series.map((d) => d.views) }]}
+            />
+          </div>
+        </section>
+
+        <section className="admin-panel-card">
+          <div className="admin-panel-head">
+            <h2>Traffic &amp; sources <span className="admin-range-tag">{rangeLabel}</span></h2>
+            <a className="btn-outline-dark" href={vercelUrl} target="_blank" rel="noopener noreferrer">
+              Open Vercel Analytics ↗
+            </a>
+          </div>
+          {m.traffic.total === 0 ? (
+            <p className="admin-empty">
+              No first-party pageviews in this range yet — they start accruing once this is live.
+              Vercel Analytics has your full history and sources in the meantime.
+            </p>
+          ) : (
+            <div className="admin-two-col">
+              <div>
+                <h3>By source</h3>
+                <ul className="admin-bar-list">
+                  {m.traffic.bySource.map((s) => (
+                    <li key={s.source}>
+                      <span className="admin-bar-label">{SOURCE_LABELS[s.source] || s.source}</span>
+                      <span className="admin-bar">
+                        <span style={{ width: `${(s.count / maxSource) * 100}%` }} />
+                      </span>
+                      <strong>{s.count.toLocaleString()}</strong>
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p className="admin-empty">No external referrers recorded yet.</p>
-              )}
-              <h3>Top pages</h3>
+              </div>
+              <div>
+                <h3>Top referrers</h3>
+                {m.traffic.topReferrers.length ? (
+                  <ul className="admin-list">
+                    {m.traffic.topReferrers.map((r) => (
+                      <li key={r.host}>
+                        <span>{r.host}</span>
+                        <strong>{r.count.toLocaleString()}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="admin-empty">No external referrers in this range.</p>
+                )}
+                <h3>Top pages</h3>
+                <ul className="admin-list">
+                  {m.traffic.topPaths.map((p) => (
+                    <li key={p.path}>
+                      <span>{p.path}</span>
+                      <strong>{p.count.toLocaleString()}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="admin-panel-grid">
+          <div className="admin-panel-card">
+            <h2>Content <span className="admin-range-tag">{rangeLabel}</span></h2>
+            <ul className="admin-kv">
+              <li><span>Reviews (approved / total)</span><strong>{m.reviews.approved} / {m.reviews.total}</strong></li>
+              <li><span>Verified reviews</span><strong>{m.reviews.verified}</strong></li>
+              <li><span>Comments</span><strong>{m.comments.total}</strong></li>
+              <li><span>Hidden reviews (all time)</span><strong>{m.reviews.hidden}</strong></li>
+            </ul>
+          </div>
+          <div className="admin-panel-card">
+            <h2>Catalog <span className="admin-range-tag">Current</span></h2>
+            <ul className="admin-kv">
+              <li><span>Managers</span><strong>{m.catalog.managers}</strong></li>
+              <li><span>Companies</span><strong>{m.catalog.companies}</strong></li>
+              <li><span>Signed-in users</span><strong>{m.catalog.users}</strong></li>
+            </ul>
+          </div>
+          <div className="admin-panel-card">
+            <h2>Engagement <span className="admin-range-tag">{rangeLabel}</span></h2>
+            <ul className="admin-kv">
+              <li><span>Likes</span><strong>{m.engagement.likes}</strong></li>
+              <li><span>Manager follows</span><strong>{m.engagement.follows}</strong></li>
+              <li><span>Reply subscriptions</span><strong>{m.engagement.subscriptions}</strong></li>
+            </ul>
+          </div>
+          <div className="admin-panel-card">
+            <h2>Most reviewed <span className="admin-range-tag">{rangeLabel}</span></h2>
+            {m.topManagers.length ? (
               <ul className="admin-list">
-                {m.traffic.topPaths.map((p) => (
-                  <li key={p.path}>
-                    <span>{p.path}</span>
-                    <strong>{p.count.toLocaleString()}</strong>
+                {m.topManagers.map((t, i) => (
+                  <li key={i}>
+                    <span>{t.name} · {t.company}</span>
+                    <strong>{t.count.toLocaleString()}</strong>
                   </li>
                 ))}
               </ul>
-            </div>
+            ) : (
+              <p className="admin-empty">No reviews in this range.</p>
+            )}
           </div>
-        )}
-      </section>
-
-      <section className="admin-panel-grid">
-        <div className="admin-panel-card">
-          <h2>Content</h2>
-          <ul className="admin-kv">
-            <li><span>Reviews (approved / total)</span><strong>{m.reviews.approved} / {m.reviews.total}</strong></li>
-            <li><span>Verified reviews</span><strong>{m.reviews.verified}</strong></li>
-            <li><span>Hidden reviews</span><strong>{m.reviews.hidden}</strong></li>
-            <li><span>New reviews (7d / 30d)</span><strong>{m.reviews.last7} / {m.reviews.last30}</strong></li>
-            <li><span>Comments (total / 7d)</span><strong>{m.comments.total} / {m.comments.last7}</strong></li>
-          </ul>
-        </div>
-        <div className="admin-panel-card">
-          <h2>Catalog</h2>
-          <ul className="admin-kv">
-            <li><span>Managers</span><strong>{m.catalog.managers}</strong></li>
-            <li><span>Companies</span><strong>{m.catalog.companies}</strong></li>
-            <li><span>Signed-in users</span><strong>{m.catalog.users}</strong></li>
-          </ul>
-        </div>
-        <div className="admin-panel-card">
-          <h2>Engagement</h2>
-          <ul className="admin-kv">
-            <li><span>Likes</span><strong>{m.engagement.likes}</strong></li>
-            <li><span>Manager follows</span><strong>{m.engagement.follows}</strong></li>
-            <li><span>Reply subscriptions</span><strong>{m.engagement.subscriptions}</strong></li>
-          </ul>
-        </div>
-        <div className="admin-panel-card">
-          <h2>Most reviewed</h2>
-          {m.topManagers.length ? (
-            <ul className="admin-list">
-              {m.topManagers.map((t, i) => (
-                <li key={i}>
-                  <span>{t.name} · {t.company}</span>
-                  <strong>{t.count.toLocaleString()}</strong>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="admin-empty">No reviews yet.</p>
-          )}
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
   );
 }
@@ -188,6 +238,7 @@ function StatCard({
   sub,
   tone,
   accent,
+  href,
 }: {
   icon: ReactNode;
   label: string;
@@ -195,18 +246,21 @@ function StatCard({
   sub?: string;
   tone?: "warn";
   accent: string;
+  href?: string;
 }) {
-  return (
-    <div className={`admin-stat${tone === "warn" ? " admin-stat-warn" : ""}`}>
+  const inner = (
+    <>
       <span className="admin-stat-icon" style={{ color: accent, background: `${accent}14` }}>{icon}</span>
       <span className="admin-stat-value"><CountUp value={value} /></span>
-      <span className="admin-stat-label">{label}</span>
+      <span className="admin-stat-label">{label}{href ? <span className="admin-stat-arrow" aria-hidden="true"> →</span> : null}</span>
       {sub ? <span className="admin-stat-sub">{sub}</span> : null}
-    </div>
+    </>
   );
+  const className = `admin-stat${tone === "warn" ? " admin-stat-warn" : ""}${href ? " admin-stat-link" : ""}`;
+  return href ? <a className={className} href={href}>{inner}</a> : <div className={className}>{inner}</div>;
 }
 
-/** Eases from 0 to value once on mount; respects reduced-motion. */
+/** Eases from 0 to value; re-runs when the value changes (e.g. range switch). */
 function CountUp({ value }: { value: number }) {
   const [n, setN] = useState(0);
 
@@ -216,12 +270,13 @@ function CountUp({ value }: { value: number }) {
       return;
     }
     let raf = 0;
+    const from = 0;
     const start = performance.now();
-    const dur = 700;
+    const dur = 600;
     const tick = (t: number) => {
       const p = Math.min(1, (t - start) / dur);
       const eased = 1 - Math.pow(1 - p, 3);
-      setN(Math.round(value * eased));
+      setN(Math.round(from + (value - from) * eased));
       if (p < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -346,10 +401,7 @@ function TrendChart({
       </svg>
 
       {hover !== null ? (
-        <div
-          className="admin-chart-tip"
-          style={{ left: `${(x(hover) / w) * 100}%` }}
-        >
+        <div className="admin-chart-tip" style={{ left: `${(x(hover) / w) * 100}%` }}>
           <div className="admin-chart-tip-date">{labels[hover]}</div>
           {series.map((s) => (
             <div key={s.label} className="admin-chart-tip-row">

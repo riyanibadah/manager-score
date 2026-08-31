@@ -3263,6 +3263,11 @@ button, input, textarea, select { font: inherit; }
 }
 .admin-dash-head {
   margin-top: 8px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 20px;
+  flex-wrap: wrap;
 }
 .admin-dash-head h1 {
   margin: 0;
@@ -3557,6 +3562,155 @@ button, input, textarea, select { font: inherit; }
   margin-left: auto;
   padding-left: 14px;
   font-variant-numeric: tabular-nums;
+}
+
+/* Date-range segmented control */
+.admin-range {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(18, 23, 40, 0.04);
+}
+.admin-range-btn {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 7px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.admin-range-btn:hover:not(.is-active) {
+  color: var(--ink);
+}
+.admin-range-btn.is-active {
+  background: linear-gradient(135deg, var(--purple), #682df4);
+  color: #fff;
+}
+.admin-range-btn:disabled {
+  cursor: default;
+}
+.admin-range-tag {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.admin-dash-body {
+  transition: opacity 0.2s ease;
+}
+.admin-dash-body.is-loading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* Clickable stat card (Open reports → queue) */
+.admin-stat-link {
+  text-decoration: none;
+  cursor: pointer;
+}
+.admin-stat-arrow {
+  color: #94a3b8;
+  font-weight: 800;
+}
+.admin-stat-link:hover .admin-stat-arrow {
+  color: var(--purple);
+}
+
+/* Reports queue */
+.admin-report-list {
+  width: min(100% - 48px, 900px);
+  margin: 16px auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.admin-report-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.admin-report-reason {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #fff1ee;
+  color: #c0392b;
+  font-size: 12px;
+  font-weight: 800;
+}
+.admin-report-meta {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+.admin-report-quote {
+  margin: 14px 0 0;
+  padding: 12px 16px;
+  border-left: 3px solid var(--line);
+  background: #f8fafc;
+  border-radius: 0 10px 10px 0;
+  color: #334155;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+.admin-report-details {
+  margin: 12px 0 0;
+  color: #475069;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.admin-report-requester {
+  margin: 8px 0 0;
+  color: #94a3b8;
+  font-size: 12px;
+}
+.admin-report-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+.admin-report-actions button {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.admin-report-actions button:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+.admin-report-actions button.admin-danger-link {
+  border-color: transparent;
+  background: transparent;
+  color: #dc2626;
+}
+.admin-report-actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.admin-report-error {
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 700;
 }
 @media (max-width: 860px) {
   .admin-stat-grid {
