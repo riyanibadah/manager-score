@@ -3284,11 +3284,26 @@ button, input, textarea, select { font: inherit; }
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 20px;
+  padding: 18px 20px 20px;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 16px;
   box-shadow: 0 8px 24px rgba(18, 23, 40, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.admin-stat:hover {
+  border-color: #d8cef9;
+  box-shadow: 0 16px 34px rgba(18, 23, 40, 0.09);
+  transform: translateY(-2px);
+}
+.admin-stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  margin-bottom: 8px;
 }
 .admin-stat-warn {
   border-color: #f5c9c0;
@@ -3323,8 +3338,11 @@ button, input, textarea, select { font: inherit; }
   border-radius: 16px;
   box-shadow: 0 8px 24px rgba(18, 23, 40, 0.04);
 }
-.admin-panel-grid .admin-panel-card {
-  margin-top: 0;
+/* Cards inside a grid size to their cell, not the centered page column. */
+.admin-panel-grid .admin-panel-card,
+.admin-chart-grid .admin-panel-card {
+  width: auto;
+  margin: 0;
 }
 .admin-panel-card h2 {
   margin: 0 0 14px;
@@ -3428,10 +3446,123 @@ button, input, textarea, select { font: inherit; }
   font-size: 13px;
   line-height: 1.6;
 }
+.admin-panel-card {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.admin-panel-card:hover {
+  border-color: #e6e0fb;
+  box-shadow: 0 14px 32px rgba(18, 23, 40, 0.07);
+}
+.admin-bar-list li {
+  transition: opacity 0.12s ease;
+}
+.admin-bar-list li:hover {
+  opacity: 0.72;
+}
+.admin-bar > span {
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Charts */
+.admin-chart-grid {
+  width: min(100% - 48px, 1120px);
+  margin: 16px auto 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.admin-chart {
+  position: relative;
+}
+.admin-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.admin-chart-head h3 {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: -0.2px;
+}
+.admin-chart-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475069;
+}
+.admin-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.admin-chart-legend i,
+.admin-chart-tip-row i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+.admin-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.admin-grid {
+  stroke: #eef0f6;
+  stroke-width: 1;
+}
+.admin-axis {
+  fill: #94a3b8;
+  font-size: 10px;
+  font-weight: 600;
+}
+.admin-crosshair {
+  stroke: #cbd5e1;
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.admin-chart-tip {
+  position: absolute;
+  top: 34px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: #0b1020;
+  color: #fff;
+  border-radius: 10px;
+  padding: 9px 11px;
+  font-size: 12px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+  white-space: nowrap;
+  z-index: 5;
+}
+.admin-chart-tip-date {
+  font-weight: 800;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+.admin-chart-tip-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  line-height: 1.7;
+}
+.admin-chart-tip-row span {
+  color: #cbd5e1;
+}
+.admin-chart-tip-row strong {
+  margin-left: auto;
+  padding-left: 14px;
+  font-variant-numeric: tabular-nums;
+}
 @media (max-width: 860px) {
   .admin-stat-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .admin-chart-grid,
   .admin-panel-grid,
   .admin-two-col {
     grid-template-columns: 1fr;

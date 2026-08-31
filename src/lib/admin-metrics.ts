@@ -43,6 +43,51 @@ function since(days: number) {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 }
 
+export type DayPoint = { date: string; reviews: number; comments: number; views: number };
+
+/**
+ * Per-day counts for the last `days` days (UTC buckets), gaps filled with zero so
+ * the chart always has a continuous run. Grouped in the DB rather than pulling
+ * rows, so the pageview table staying large doesn't matter here.
+ */
+async function buildDailySeries(days: number): Promise<DayPoint[]> {
+  const start = new Date();
+  start.setUTCHours(0, 0, 0, 0);
+  start.setUTCDate(start.getUTCDate() - (days - 1));
+
+  const daily = (table: string) =>
+    prisma.$queryRawUnsafe<Array<{ day: Date; count: number }>>(
+      `SELECT date_trunc('day', "createdAt") AS day, COUNT(*)::int AS count
+       FROM "${table}" WHERE "createdAt" >= $1 GROUP BY day`,
+      start,
+    );
+
+  const [reviews, comments, views] = await Promise.all([
+    daily("Review"),
+    daily("ReviewReply"),
+    daily("PageView"),
+  ]);
+
+  const key = (d: Date) => new Date(d).toISOString().slice(0, 10);
+  const rMap = new Map(reviews.map((r) => [key(r.day), r.count]));
+  const cMap = new Map(comments.map((r) => [key(r.day), r.count]));
+  const vMap = new Map(views.map((r) => [key(r.day), r.count]));
+
+  const out: DayPoint[] = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date(start);
+    d.setUTCDate(start.getUTCDate() + i);
+    const k = d.toISOString().slice(0, 10);
+    out.push({
+      date: d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }),
+      reviews: rMap.get(k) || 0,
+      comments: cMap.get(k) || 0,
+      views: vMap.get(k) || 0,
+    });
+  }
+  return out;
+}
+
 export type AdminMetrics = Awaited<ReturnType<typeof getAdminMetrics>>;
 
 /**
@@ -132,7 +177,10 @@ export async function getAdminMetrics() {
       })
       .filter((row): row is { name: string; company: string; count: number } => Boolean(row));
 
+    const series = await buildDailySeries(14);
+
     return {
+      series,
       reviews: { total: reviewsTotal, approved: reviewsApproved, verified: reviewsVerified, last7: reviews7, last30: reviews30, hidden: hiddenReviews },
       comments: { total: comments, last7: comments7 },
       reports: { open: reportsOpen, total: reportsTotal },
@@ -153,6 +201,7 @@ export async function getAdminMetrics() {
   } catch (error) {
     console.error("getAdminMetrics failed:", error);
     return {
+      series: [] as DayPoint[],
       reviews: { total: 0, approved: 0, verified: 0, last7: 0, last30: 0, hidden: 0 },
       comments: { total: 0, last7: 0 },
       reports: { open: 0, total: 0 },
