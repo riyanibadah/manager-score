@@ -26,6 +26,11 @@ enum ReportStatus {
   DISMISSED
 }
 
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+}
+
 model Company {
   id        String    @id @default(cuid())
   name      String
@@ -206,6 +211,8 @@ model User {
   reviews       Review[]
   replies       ReviewReply[]
   managerFollows ManagerFollow[]
+  blogPosts     BlogPost[]    @relation("BlogAuthor")
+  blogComments  BlogComment[] @relation("BlogCommenter")
   // Per-category opt-outs for account email notifications. Default on; each
   // notification email carries a one-click unsubscribe that flips one of these.
   // notifyToken is the stable secret those unsubscribe links are built from.
@@ -299,4 +306,38 @@ model PageView {
 
   @@index([createdAt])
   @@index([source])
+}
+
+model BlogPost {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  title       String
+  excerpt     String
+  body        String       // Markdown, rendered server-side.
+  coverImage  String?
+  status      BlogStatus   @default(DRAFT)
+  authorId    String?
+  author      User?        @relation("BlogAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  publishedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  comments    BlogComment[]
+
+  @@index([status, publishedAt])
+}
+
+model BlogComment {
+  id         String       @id @default(cuid())
+  postId     String
+  post       BlogPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  // Sign-in is required to comment, so this is normally set; SetNull keeps the
+  // comment if the account is later removed, with authorName preserved.
+  userId     String?
+  user       User?        @relation("BlogCommenter", fields: [userId], references: [id], onDelete: SetNull)
+  authorName String
+  body       String
+  status     ReviewStatus @default(APPROVED)
+  createdAt  DateTime     @default(now())
+
+  @@index([postId, status, createdAt])
 }

@@ -19,6 +19,7 @@ export default function SiteFooter({ disclaimer }: { disclaimer?: ReactNode }) {
           </a>
           <nav aria-label="Footer">
             <a href="/">Home</a>
+            <a href="/blog">Blog</a>
             <a href="/#reviews">Reviews</a>
             <a href="/privacy">Privacy</a>
             <a href="/terms">Terms</a>

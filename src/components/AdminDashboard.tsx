@@ -65,6 +65,7 @@ export default function AdminDashboard({
         </a>
         <div className="admin-dash-topbar-actions">
           <span className="admin-dash-badge">Admin</span>
+          <a className="btn-outline-dark" href="/admin/blog">Blog</a>
           <a className="btn-outline-dark" href="/">← Back to site</a>
         </div>
       </nav>

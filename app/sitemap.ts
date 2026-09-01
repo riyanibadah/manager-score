@@ -1,12 +1,14 @@
 import type { MetadataRoute } from "next";
 import { getApprovedManagerUrls, getReviewedCompanies } from "../src/lib/public-data";
+import { getPublishedPostRefs } from "../src/lib/blog";
 import { siteUrl } from "../src/lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = siteUrl();
-  const [managerUrls, companies] = await Promise.all([
+  const [managerUrls, companies, posts] = await Promise.all([
     getApprovedManagerUrls(),
     getReviewedCompanies(),
+    getPublishedPostRefs(),
   ]);
 
   return [
@@ -22,6 +24,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 0.9,
     },
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    ...posts.map((post) => ({
+      url: `${baseUrl}/blog/${post.slug}`,
+      lastModified: post.updatedAt,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
     ...companies.map((company) => ({
       url: `${baseUrl}${company.companyPath}`,
       lastModified: company.lastModified,
