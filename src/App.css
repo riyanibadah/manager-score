@@ -388,6 +388,23 @@ button, input, textarea, select { font: inherit; }
 .review-verified-badge svg {
   display: block;
 }
+.review-unverified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.review-unverified-badge svg {
+  display: block;
+}
 
 .manager-follow {
   margin-top: 12px;

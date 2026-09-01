@@ -641,12 +641,19 @@ function ReviewCard({ review }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{review.reviewerRole || 'Anonymous employee'}</span>
-            {review.verified && (
+            {review.verified ? (
               <span className="review-verified-badge" title="Reviewer confirmed a work email address">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5l-8-3zm-1.2 13.2-3.3-3.3 1.4-1.4 1.9 1.9 4.3-4.3 1.4 1.4-5.7 5.7z" />
                 </svg>
                 Verified
+              </span>
+            ) : (
+              <span className="review-unverified-badge" title="Not verified — the reviewer didn't confirm a work email">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" strokeDasharray="3 3.4" />
+                </svg>
+                Unverified
               </span>
             )}
           </div>
