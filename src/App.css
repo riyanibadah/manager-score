@@ -3757,7 +3757,7 @@ button, input, textarea, select { font: inherit; }
 .blog-grid,
 .blog-article,
 .blog-comments-wrap {
-  width: min(100% - 40px, 760px);
+  width: min(100% - 40px, 880px);
   margin-left: auto;
   margin-right: auto;
 }
