@@ -153,7 +153,7 @@ export function normalizeBlogInput(input: unknown): BlogInput | { error: string 
   if (!title) return { error: "Title is required." };
   if (!excerpt) return { error: "An excerpt is required — it's the preview and meta description." };
   if (body.length < 20) return { error: "Write a bit more before saving." };
-  if (coverImage && !/^(https?:\/\/|\/)/i.test(coverImage)) return { error: "Cover image must be a URL." };
+  if (coverImage && !/^(https?:\/\/|\/|data:image\/)/i.test(coverImage)) return { error: "Cover image must be a URL." };
 
   return {
     title,

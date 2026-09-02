@@ -7,6 +7,11 @@ import { escapeHtml } from "./html";
  * Body headings start at <h2> (the page title owns the single <h1>).
  */
 function inline(text: string): string {
+  // Images: ![alt](src) — handled before links so the [] isn't taken as a link.
+  text = text.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_m, alt: string, src: string) => {
+    if (!/^(https?:\/\/|\/|data:image\/)/i.test(src.trim())) return "";
+    return `<img src="${src.trim()}" alt="${alt}" loading="lazy" />`;
+  });
   // Links: [label](url) — only http(s), root-relative, anchor, or mailto pass.
   text = text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, label: string, url: string) => {
     const href = url.trim();
