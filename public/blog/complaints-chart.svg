@@ -1,46 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" width="1000" height="600" role="img" aria-label="Top manager complaints ranked by share of reviews">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" width="1000" height="620" role="img" aria-label="Top manager complaints ranked by share of reviews, with the three unforgivable behaviors highlighted">
   <defs>
-    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#5b2df5"/>
-      <stop offset="1" stop-color="#7c4dff"/>
-    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5b2df5"/><stop offset="1" stop-color="#7c4dff"/></linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c62b2b"/><stop offset="1" stop-color="#e04747"/></linearGradient>
   </defs>
-  <rect width="1000" height="600" rx="18" fill="#ffffff"/>
-  <text x="40" y="52" fill="#0b1020" font-family="Segoe UI, system-ui, sans-serif" font-size="28" font-weight="800">What employees complain about most</text>
-  <text x="40" y="82" fill="#64748b" font-family="Segoe UI, system-ui, sans-serif" font-size="16" font-weight="600">Share of manager reviews mentioning each · ManagerScore</text>
+  <rect width="1000" height="620" rx="18" fill="#ffffff"/>
+  <text x="40" y="50" fill="#0b1020" font-family="Segoe UI, system-ui, sans-serif" font-size="28" font-weight="800">What employees complain about most</text>
+  <text x="40" y="80" fill="#64748b" font-family="Segoe UI, system-ui, sans-serif" font-size="16" font-weight="600">Share of manager reviews mentioning each. <tspan fill="#c62b2b" font-weight="800">Red = the 3 behaviors 91% never forgive.</tspan></text>
 
   <g font-family="Segoe UI, system-ui, sans-serif">
-    <!-- 1 -->
-    <text x="300" y="136" text-anchor="end" font-size="18" font-weight="600" fill="#334155">Unclear priorities</text>
-    <rect x="316" y="115" width="600" height="30" rx="7" fill="url(#bar)"/>
-    <text x="928" y="136" font-size="18" font-weight="800" fill="#0b1020">30%</text>
-    <!-- 2 -->
-    <text x="300" y="192" text-anchor="end" font-size="18" font-weight="600" fill="#334155">Plays favorites</text>
-    <rect x="316" y="171" width="560" height="30" rx="7" fill="url(#bar)"/>
-    <text x="888" y="192" font-size="18" font-weight="800" fill="#0b1020">28%</text>
-    <!-- 3 -->
-    <text x="300" y="248" text-anchor="end" font-size="18" font-weight="600" fill="#334155">High pressure</text>
-    <rect x="316" y="227" width="520" height="30" rx="7" fill="url(#bar)"/>
-    <text x="848" y="248" font-size="18" font-weight="800" fill="#0b1020">26%</text>
-    <!-- 4 -->
-    <text x="300" y="304" text-anchor="end" font-size="18" font-weight="600" fill="#334155">Poor communication</text>
-    <rect x="316" y="283" width="520" height="30" rx="7" fill="url(#bar)"/>
-    <text x="848" y="304" font-size="18" font-weight="800" fill="#0b1020">26%</text>
-    <!-- 5 -->
-    <text x="300" y="360" text-anchor="end" font-size="18" font-weight="600" fill="#334155">Micromanages</text>
-    <rect x="316" y="339" width="480" height="30" rx="7" fill="url(#bar)"/>
-    <text x="808" y="360" font-size="18" font-weight="800" fill="#0b1020">24%</text>
-    <!-- 6 -->
-    <text x="300" y="416" text-anchor="end" font-size="18" font-weight="600" fill="#334155">Blames the team</text>
-    <rect x="316" y="395" width="420" height="30" rx="7" fill="url(#bar)"/>
-    <text x="748" y="416" font-size="18" font-weight="800" fill="#0b1020">21%</text>
-    <!-- 7 -->
-    <text x="300" y="472" text-anchor="end" font-size="18" font-weight="600" fill="#334155">Takes credit</text>
-    <rect x="316" y="451" width="280" height="30" rx="7" fill="url(#bar)"/>
-    <text x="608" y="472" font-size="18" font-weight="800" fill="#0b1020">14%</text>
-    <!-- 8 -->
-    <text x="300" y="528" text-anchor="end" font-size="18" font-weight="600" fill="#334155">Too many meetings</text>
-    <rect x="316" y="507" width="220" height="30" rx="7" fill="url(#bar)"/>
-    <text x="548" y="528" font-size="18" font-weight="800" fill="#0b1020">11%</text>
+    <text x="300" y="146" text-anchor="end" font-size="18" font-weight="600" fill="#334155">Unclear priorities</text>
+    <rect x="316" y="125" width="600" height="30" rx="7" fill="url(#bar)"/>
+    <text x="928" y="146" font-size="18" font-weight="800" fill="#0b1020">30%</text>
+
+    <text x="300" y="202" text-anchor="end" font-size="18" font-weight="700" fill="#c62b2b">Plays favorites</text>
+    <rect x="316" y="181" width="560" height="30" rx="7" fill="url(#red)"/>
+    <text x="888" y="202" font-size="18" font-weight="800" fill="#0b1020">28%</text>
+
+    <text x="300" y="258" text-anchor="end" font-size="18" font-weight="600" fill="#334155">High pressure</text>
+    <rect x="316" y="237" width="520" height="30" rx="7" fill="url(#bar)"/>
+    <text x="848" y="258" font-size="18" font-weight="800" fill="#0b1020">26%</text>
+
+    <text x="300" y="314" text-anchor="end" font-size="18" font-weight="600" fill="#334155">Poor communication</text>
+    <rect x="316" y="293" width="520" height="30" rx="7" fill="url(#bar)"/>
+    <text x="848" y="314" font-size="18" font-weight="800" fill="#0b1020">26%</text>
+
+    <text x="300" y="370" text-anchor="end" font-size="18" font-weight="600" fill="#334155">Micromanages</text>
+    <rect x="316" y="349" width="480" height="30" rx="7" fill="url(#bar)"/>
+    <text x="808" y="370" font-size="18" font-weight="800" fill="#0b1020">24%</text>
+
+    <text x="300" y="426" text-anchor="end" font-size="18" font-weight="700" fill="#c62b2b">Blames the team</text>
+    <rect x="316" y="405" width="420" height="30" rx="7" fill="url(#red)"/>
+    <text x="748" y="426" font-size="18" font-weight="800" fill="#0b1020">21%</text>
+
+    <text x="300" y="482" text-anchor="end" font-size="18" font-weight="700" fill="#c62b2b">Takes credit</text>
+    <rect x="316" y="461" width="280" height="30" rx="7" fill="url(#red)"/>
+    <text x="608" y="482" font-size="18" font-weight="800" fill="#0b1020">14%</text>
+
+    <text x="300" y="538" text-anchor="end" font-size="18" font-weight="600" fill="#334155">Too many meetings</text>
+    <rect x="316" y="517" width="220" height="30" rx="7" fill="url(#bar)"/>
+    <text x="548" y="538" font-size="18" font-weight="800" fill="#0b1020">11%</text>
   </g>
 </svg>
