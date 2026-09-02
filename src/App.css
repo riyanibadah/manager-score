@@ -3861,6 +3861,15 @@ button, input, textarea, select { font: inherit; }
   line-height: 1.75;
   color: #1f2937;
 }
+/* Editorial drop cap on the opening paragraph. */
+.blog-article-body > p:first-of-type::first-letter {
+  float: left;
+  margin: 6px 12px 0 0;
+  color: var(--purple);
+  font-size: 3.7em;
+  font-weight: 850;
+  line-height: 0.78;
+}
 .blog-article-body h2 {
   margin: 34px 0 10px;
   font-size: 26px;
@@ -3886,11 +3895,14 @@ button, input, textarea, select { font: inherit; }
   text-decoration: underline;
 }
 .blog-article-body blockquote {
-  margin: 0 0 18px;
-  padding: 4px 18px;
-  border-left: 3px solid var(--purple);
-  color: #475069;
+  margin: 28px 0;
+  padding: 6px 0 6px 22px;
+  border-left: 4px solid var(--purple);
+  color: var(--ink);
+  font-size: 1.28em;
+  font-weight: 650;
   font-style: italic;
+  line-height: 1.4;
 }
 .blog-article-body code {
   background: #eef0f6;
