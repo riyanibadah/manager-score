@@ -134,13 +134,18 @@ export async function POST(request: Request) {
             verificationEmailHash: hashValue(workEmail),
           },
         });
-        await sendReviewVerification({
+        // Only "pending" if the email genuinely went out. sendReviewVerification
+        // returns false when Resend isn't configured or rejects the send (e.g.
+        // no verified domain), so we no longer claim success when nothing sent.
+        verificationPending = await sendReviewVerification({
           email: workEmail,
           verifyToken,
           managerName: review.managerName,
           company: review.company,
         });
-        verificationPending = true;
+        if (!verificationPending) {
+          console.error("Review verification email did not send — check Resend config (RESEND_API_KEY + a verified sending domain).");
+        }
       } catch (verifyError) {
         console.error("Review verification email failed:", verifyError);
       }
